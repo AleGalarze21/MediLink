@@ -1,0 +1,148 @@
+/* MediLink — estilos propios de la versión MÓVIL (marco de celular, barra inferior) */
+body {
+  display: flex;
+  justify-content: center;
+  padding: 28px 16px;
+  background: #e8eef3;
+}
+.phone-frame {
+  width: 398px;
+  max-width: 100%;
+  background: #0e1a2b;
+  border-radius: 54px;
+  padding: 12px;
+  flex-shrink: 0;
+  box-shadow: 0 30px 60px rgba(15, 27, 45, 0.22);
+}
+.phone-screen {
+  background: var(--bg);
+  border-radius: 42px;
+  height: 844px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+.phone-screen::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 128px;
+  height: 30px;
+  background: #0e1a2b;
+  border-radius: 0 0 20px 20px;
+  z-index: 60;
+}
+.phone-status {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 32px 8px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+}
+.phone-scroll {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
+}
+.view {
+  padding: 12px 18px 26px;
+}
+.m-logo {
+  display: block;
+  height: 46px;
+  width: auto;
+  margin: 0 0 14px -4px;
+  mix-blend-mode: multiply;
+}
+.prof-list {
+  grid-template-columns: 1fr;
+}
+.hero-search button {
+  padding: 10px 16px;
+}
+.how {
+  display: block;
+  background: var(--surface);
+  border: 1px solid rgba(15, 27, 45, 0.04);
+  border-radius: 22px;
+  padding: 4px 16px;
+  box-shadow: var(--shadow);
+}
+.how-item {
+  background: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 14px 0;
+}
+.how-item + .how-item {
+  border-top: 1px solid var(--border);
+}
+.bottomnav {
+  flex-shrink: 0;
+  background: #fff;
+  border-top: 1px solid #edf0f4;
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 6px 16px;
+}
+.bn-item {
+  background: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-3);
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+}
+.bn-item .icon {
+  width: 22px;
+  height: 22px;
+}
+.bn-item.active {
+  color: var(--green);
+}
+.toast {
+  width: max-content;
+  position: absolute;
+  bottom: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 88%;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-6px);
+}
+@media (max-width: 460px) {
+  body {
+    padding: 0;
+    display: block;
+    background: var(--bg);
+  }
+  .phone-frame {
+    width: 100%;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+  .phone-screen {
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+  .phone-screen::before,
+  .phone-status {
+    display: none;
+  }
+}

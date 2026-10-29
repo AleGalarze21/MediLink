@@ -1,0 +1,219 @@
+/* MediLink — estilos propios de la versión WEB (menú lateral, portada, grillas) */
+.topnav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #0b1a2b;
+  padding: 10px 14px;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  overflow-x: auto;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 6px 10px;
+  flex-shrink: 0;
+}
+.brand-mark {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--green);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 13px;
+}
+.brand-name {
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--text);
+}
+.brand-logo {
+  display: block;
+  height: 32px;
+  width: auto;
+}
+.topnav-links {
+  display: flex;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  color: #b7c3d1;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  background: none;
+  white-space: nowrap;
+}
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+.nav-item.active {
+  background: #0f3038;
+  color: #fff;
+}
+.nav-item.active .icon {
+  color: #2cc7b8;
+}
+.view {
+  padding: 24px 16px 60px;
+  max-width: 1240px;
+  margin: 0 auto;
+  width: 100%;
+}
+.toast {
+  width: max-content;
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-6px);
+}
+.profile-wrap {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  align-items: start;
+}
+.hosp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
+  gap: 14px;
+}
+.spec-grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+@media (min-width: 560px) {
+  .spec-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+}
+/* barra superior en pantallas angostas: todas las secciones visibles */
+.topnav {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+.topnav-links {
+  flex: 1 1 100%;
+  gap: 2px;
+}
+.nav-item {
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 3px;
+  padding: 7px 4px;
+  font-size: 11px;
+  justify-content: center;
+}
+.nav-item .icon {
+  width: 19px;
+  height: 19px;
+}
+.where-title {
+  margin-top: 22px;
+}
+@media (min-width: 860px) {
+  .topnav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 250px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: 22px 14px;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .brand {
+    padding: 14px 12px;
+    border-radius: 16px;
+    margin-bottom: 28px;
+    justify-content: center;
+  }
+  .brand-logo {
+    height: auto;
+    width: 100%;
+  }
+  .brand-mark {
+    width: 32px;
+    height: 32px;
+    font-size: 15px;
+  }
+  .brand-name {
+    font-size: 16px;
+  }
+  .topnav-links {
+    flex-direction: column;
+    gap: 3px;
+  }
+  .topnav-links::before {
+    content: "Menú";
+    font-size: 11px;
+    color: #6f8197;
+    font-weight: 600;
+    padding: 0 14px 8px;
+  }
+  .topnav {
+    flex-wrap: nowrap;
+  }
+  .topnav-links {
+    flex: none;
+  }
+  .nav-item {
+    flex: none;
+    flex-direction: row;
+    gap: 8px;
+    padding: 12px 14px;
+    font-size: 14px;
+    justify-content: flex-start;
+  }
+  .nav-item .icon {
+    width: 20px;
+    height: 20px;
+  }
+  .where-title {
+    margin-top: 0;
+  }
+  main {
+    margin-left: 250px;
+  }
+  .view {
+    padding: 38px 44px 70px;
+  }
+  .h-title {
+    font-size: 30px;
+  }
+  .profile-wrap {
+    grid-template-columns: 330px 1fr;
+  }
+  .profile-wrap .profile-head {
+    position: sticky;
+    top: 24px;
+  }
+  .hero {
+    padding: 54px 40px;
+  }
+  .hero h1 {
+    font-size: 34px;
+  }
+}
