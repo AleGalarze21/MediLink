@@ -30,12 +30,14 @@ function go(v) {
   }
   if (v === "ranking") renderRanking();
   if (v === "centros") renderCentros();
+  if (v === "turnos") renderAppointments();
 }
 
 /* Menús */
 const NAV = [
   ["inicio", "home", "Inicio"],
   ["buscar", "search", "Profesionales"],
+  ["turnos", "calendar", "Mis turnos"],
   ["ranking", "star", "Ranking"],
   ["centros", "hosp", "Centros"],
 ];

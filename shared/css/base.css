@@ -675,3 +675,14 @@ textarea.field {
   z-index: 80;
   text-align: center;
 }
+.booking-card { margin-top: 18px; }
+.booking-fields { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
+.booking-fields label { display: grid; gap: 6px; color: var(--text-2); font-size: 12px; font-weight: 700; }
+.booking-fields .sel { width: 100%; min-width: 0; }
+.appointments-list { display: grid; gap: 12px; }
+.appointment-card { display: flex; align-items: center; justify-content: space-between; gap: 16px; background: var(--surface); border: 1px solid rgba(15, 27, 45, 0.04); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); }
+.appointment-card h3 { font-size: 16px; margin-top: 10px; }
+.appointment-card p { color: var(--text-2); font-size: 13px; margin-top: 4px; }
+.appointment-date { color: var(--green-d) !important; font-weight: 700; text-transform: capitalize; }
+.empty-state { text-align: center; }
+@media (max-width: 620px) { .booking-fields { grid-template-columns: 1fr; } .appointment-card { align-items: flex-start; flex-direction: column; } .appointment-card .btn-outline { width: 100%; } }
