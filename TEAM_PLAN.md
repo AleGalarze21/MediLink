@@ -8,7 +8,7 @@ Construir el MVP paciente completo:
 
 Cada integrante trabaja en su propia rama y crea un Pull Request hacia `mvp-paciente`.
 
-## Integrante 1 - Interfaz del paciente
+## Ale - Integrante 1: Interfaz del paciente
 
 ### Responsabilidad
 
@@ -37,7 +37,7 @@ Experiencia visual y navegación de pacientes en web y móvil.
 feature/interfaz-paciente
 ```
 
-## Integrante 2 - Turnos y agenda
+## Cristian - Integrante 2: Turnos y agenda
 
 ### Responsabilidad
 
@@ -70,7 +70,7 @@ Flujo de turnos y disponibilidad de profesionales.
 feature/turnos-agenda
 ```
 
-## Integrante 3 - Datos, seguridad y comunicación
+## Fran - Integrante 3: Datos, seguridad y comunicación
 
 ### Responsabilidad
 
@@ -126,19 +126,19 @@ Estas historias pueden dividirse entre los mismos tres integrantes según quién
 
 ## Primeras tareas por integrante
 
-### Integrante 1
+### Ale - Integrante 1
 
 - Revisar y mejorar la pantalla de búsqueda.
 - Adaptar el logo definitivo.
 - Revisar el perfil profesional en web y móvil.
 
-### Integrante 2
+### Cristian - Integrante 2
 
 - Revisar la solicitud de turno implementada en `mvp-paciente`.
 - Probar fechas, horarios y duplicados.
 - Preparar los estados futuros del turno.
 
-### Integrante 3
+### Fran - Integrante 3
 
 - Diseñar las tablas de usuarios, turnos y notificaciones.
 - Definir permisos por rol.
