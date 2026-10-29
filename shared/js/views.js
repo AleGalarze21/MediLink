@@ -127,6 +127,18 @@ function hospCard(h, withPros) {
     ${withPros ? `<p class="muted" style="margin-top:14px;">Profesionales que atienden acá</p><div class="mini-chips">${pros.map((p) => `<button class="mini-chip" onclick="openProfile(${p.id})">${p.name} · ${p.spec}</button>`).join("")}</div>` : ""}
   </div>`;
 }
+function bookingCard(p) {
+  const dates = availableDates(p), firstDate = dates[0] || "";
+  return `<div class="card booking-card"><p class="section-title" style="margin:0 0 12px;">Solicitar un turno</p>
+    <p class="muted">Elegí un centro, una fecha y un horario disponible.</p>
+    <div class="booking-fields">
+      <label>Centro<select class="sel" id="booking-center" onchange="renderBookingSlots(${p.id})">${p.hosps.map((id) => `<option value="${id}">${hosp(id).name}</option>`).join("")}</select></label>
+      <label>Fecha<select class="sel" id="booking-date" onchange="renderBookingSlots(${p.id})">${dates.map((d) => `<option value="${d}">${dateLabel(d)}</option>`).join("") || '<option value="">Sin fechas disponibles</option>'}</select></label>
+      <label>Horario<select class="sel" id="booking-time"></select></label>
+    </div>
+    <button class="btn-primary" onclick="requestAppointment(${p.id})">Solicitar turno</button>
+  </div>`;
+}
 function renderCentros() {
   document.getElementById("centros-list").innerHTML = H.map((h) =>
     hospCard(h, true),
@@ -167,6 +179,7 @@ function openProfile(id) {
       <div>
         <p class="section-title where-title">Dónde atiende</p>
         <div style="display:grid;gap:12px;">${p.hosps.map((i) => hospCard(hosp(i), false)).join("")}</div>
+         ${bookingCard(p)}
         <p class="section-title">Opiniones de pacientes</p>
         <div class="card">${rvHtml}</div>
         <p class="section-title">Dejá tu opinión</p>
@@ -180,6 +193,7 @@ function openProfile(id) {
       </div>
     </div>`;
   go("perfil");
+  renderBookingSlots(id);
 }
 function setRating(n) {
   pickedRating = n;

@@ -84,3 +84,64 @@ function toast(m) {
   clearTimeout(window._tt);
   window._tt = setTimeout(() => t.classList.remove("show"), 2400);
 }
+
+/* Persistencia local del prototipo. Se reemplazará por la API del backend. */
+const APPOINTMENTS_KEY = "medilink-appointments";
+function getAppointments() {
+  try { return JSON.parse(localStorage.getItem(APPOINTMENTS_KEY) || "[]"); }
+  catch { return []; }
+}
+function saveAppointments(items) { localStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(items)); }
+function isoDate(d) {
+  return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, "0"), String(d.getDate()).padStart(2, "0")].join("-");
+}
+function dateLabel(iso) {
+  return new Intl.DateTimeFormat("es-AR", { weekday: "long", day: "2-digit", month: "long" }).format(new Date(iso + "T12:00:00"));
+}
+function availableDates(p) {
+  const dates = [], start = new Date();
+  start.setHours(12, 0, 0, 0);
+  for (let i = 0; i < 21 && dates.length < 10; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    if (p.hosps.some((id) => hosp(id).hours.some((slot) => slot.d.includes(d.getDay())))) dates.push(isoDate(d));
+  }
+  return dates;
+}
+function availableSlots(profId, hospId, date) {
+  const h = hosp(Number(hospId));
+  if (!h || !date) return [];
+  const day = new Date(date + "T12:00:00").getDay(), slots = [];
+  h.hours.filter((slot) => slot.d.includes(day)).forEach((slot) => {
+    for (let hour = slot.f; hour < slot.t; hour++) slots.push(`${String(hour).padStart(2, "0")}:00`);
+  });
+  const used = getAppointments().filter((a) => a.professionalId === profId && a.centerId === Number(hospId) && a.date === date).map((a) => a.time);
+  return slots.filter((slot) => !used.includes(slot));
+}
+function renderBookingSlots(profId) {
+  const center = document.getElementById("booking-center"), date = document.getElementById("booking-date"), time = document.getElementById("booking-time");
+  if (!center || !date || !time) return;
+  const slots = availableSlots(profId, center.value, date.value);
+  time.innerHTML = slots.length ? slots.map((slot) => `<option value="${slot}">${slot}</option>`).join("") : '<option value="">No hay horarios disponibles</option>';
+}
+function requestAppointment(profId) {
+  const center = document.getElementById("booking-center"), date = document.getElementById("booking-date"), time = document.getElementById("booking-time");
+  if (!center || !date || !time || !date.value || !time.value) { toast("Elegí un centro, fecha y horario disponible."); return; }
+  const appointments = getAppointments();
+  if (appointments.some((a) => a.professionalId === profId && a.centerId === Number(center.value) && a.date === date.value && a.time === time.value)) {
+    toast("Ese horario ya no está disponible."); renderBookingSlots(profId); return;
+  }
+  appointments.push({ id: Date.now(), professionalId: profId, centerId: Number(center.value), date: date.value, time: time.value, status: "Solicitado", createdAt: todayISO() });
+  saveAppointments(appointments);
+  toast("Solicitud de turno registrada.");
+  go("turnos");
+}
+function renderAppointments() {
+  const target = document.getElementById("appointments-list");
+  if (!target) return;
+  const items = getAppointments().sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`));
+  target.innerHTML = items.length ? items.map((a) => {
+    const p = P.find((item) => item.id === a.professionalId), h = hosp(a.centerId);
+    return `<article class="appointment-card"><div><span class="badge badge-open">${a.status}</span><h3>${p ? p.name : "Profesional no disponible"}</h3><p>${p ? p.spec : ""} · ${h ? h.name : "Centro no disponible"}</p><p class="appointment-date">${dateLabel(a.date)} · ${a.time}</p></div><button class="btn-outline" onclick="openProfile(${a.professionalId})">Ver perfil</button></article>`;
+  }).join("") : '<div class="card empty-state"><p class="h-sub">Todavía no tenés turnos solicitados.</p><button class="btn-primary" onclick="go(\'buscar\')">Buscar un profesional</button></div>';
+}

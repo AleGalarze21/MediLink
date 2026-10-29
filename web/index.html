@@ -18,6 +18,7 @@
     <nav class="topnav-links">
       <button class="nav-item active" data-view="inicio" onclick="go('inicio')"></button>
       <button class="nav-item" data-view="buscar" onclick="go('buscar')"></button>
+      <button class="nav-item" data-view="turnos" onclick="go('turnos')"></button>
       <button class="nav-item" data-view="ranking" onclick="go('ranking')"></button>
       <button class="nav-item" data-view="centros" onclick="go('centros')"></button>
     </nav>
@@ -40,6 +41,11 @@
       </div>
       <p class="result-count" id="result-count"></p>
       <div class="prof-list" id="prof-list"></div>
+    </section>
+    <section id="view-turnos" class="view">
+      <p class="h-title">Mis turnos</p>
+      <p class="h-sub">Consultá tus solicitudes y próximas consultas</p>
+      <div id="appointments-list" class="appointments-list" style="margin-top:16px;"></div>
     </section>
     <section id="view-ranking" class="view">
       <p class="h-title">Ranking de profesionales</p>
