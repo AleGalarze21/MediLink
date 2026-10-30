@@ -16,7 +16,7 @@ const SESSION_SECRET = process.env.MEDILINK_SESSION_SECRET || crypto.randomBytes
 const PRODUCTION = process.argv.includes("--production") || process.env.NODE_ENV === "production";
 
 if (!fs.existsSync(DB_PATH)) {
-  throw new Error(`No existe ${DB_PATH}. Creá la base con python database/crear_base.py.`);
+  throw new Error(`No existe ${DB_PATH}. Verificá que exista database/medilink.db antes de iniciar MediLink.`);
 }
 
 const db = new DatabaseSync(DB_PATH);

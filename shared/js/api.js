@@ -56,7 +56,7 @@ async function submitAuth(mode) {
   const password = document.getElementById("account-password")?.value || "";
   const button = document.getElementById("account-submit");
   if (!API_ENABLED) {
-    toast("Para usar cuentas, iniciá MediLink con python server.py.");
+    toast("Para usar cuentas, iniciá MediLink con npm run dev.");
     return;
   }
   if (button) button.disabled = true;
@@ -85,7 +85,7 @@ function renderAccount() {
   const target = document.getElementById("account-content");
   if (!target) return;
   if (!API_ENABLED) {
-    target.innerHTML = '<div class="card empty-state"><h2>Activá el servidor de MediLink</h2><p class="h-sub">Para crear una cuenta y guardar turnos en la base de datos, ejecutá <code>python server.py</code> desde la carpeta del proyecto.</p></div>';
+    target.innerHTML = '<div class="card empty-state"><h2>Activá el servidor de MediLink</h2><p class="h-sub">Para crear una cuenta y guardar turnos en la base de datos, ejecutá <code>npm run dev</code> desde la carpeta del proyecto.</p></div>';
     return;
   }
   if (!currentUser) {

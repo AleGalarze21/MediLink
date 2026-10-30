@@ -37,7 +37,6 @@ server/index.js        API Express y acceso a SQLite
 database/schema.sql    Esquema principal
 database/migrations.sql Extensiones aditivas del MVP
 database/seed.sql      Datos de ejemplo
-server.py              API anterior en Python, conservada como prototipo
 shared/js/              Interfaz JavaScript anterior, conservada como prototipo
 ```
 
