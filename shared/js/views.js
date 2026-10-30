@@ -77,7 +77,7 @@ function renderChips() {
   document.getElementById("chip-row").innerHTML = ["Todas", ...specs()]
     .map(
       (s) =>
-        `<button class="chip ${s === activeSpec ? "active" : ""}" onclick="setSpec('${s}')">${s}</button>`,
+        `<button class="chip ${s === activeSpec ? "active" : ""}" type="button" aria-pressed="${s === activeSpec}" onclick="setSpec('${s}')">${s}</button>`,
     )
     .join("");
 }
@@ -226,10 +226,13 @@ function openProfile(id) {
         <div class="card">${rvHtml}</div>
         <p class="section-title">Dejá tu opinión</p>
         <div class="card">
-          <input class="field" id="rv-name" placeholder="Tu nombre (opcional)">
-          <div class="rf-stars" id="rf-stars">${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="rf-star" onclick="setRating(${n})">★</button>`).join("")}</div>
-          <textarea class="field" id="rv-text" placeholder="Contá tu experiencia con este profesional..."></textarea>
-          <p class="err" id="rv-err">Elegí una puntuación y escribí un comentario.</p>
+          <label class="field-label" for="rv-name">Tu nombre <span>(opcional)</span></label>
+          <input class="field" id="rv-name" autocomplete="name" placeholder="Cómo te llamás">
+          <span class="field-label" id="rating-label">Tu valoración</span>
+          <div class="rf-stars" id="rf-stars" role="group" aria-labelledby="rating-label">${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="rf-star" aria-label="${n} ${n === 1 ? "estrella" : "estrellas"}" aria-pressed="false" onclick="setRating(${n})">★</button>`).join("")}</div>
+          <label class="field-label" for="rv-text">Tu experiencia</label>
+          <textarea class="field" id="rv-text" maxlength="1000" required placeholder="Contá tu experiencia con este profesional..."></textarea>
+          <p class="err" id="rv-err" role="alert">Elegí una puntuación y escribí un comentario.</p>
           <button class="btn-outline" onclick="submitReview(${p.id})">Publicar opinión</button>
         </div>
       </div>
@@ -241,7 +244,10 @@ function setRating(n) {
   pickedRating = n;
   document
     .querySelectorAll(".rf-star")
-    .forEach((b, i) => b.classList.toggle("on", i < n));
+    .forEach((b, i) => {
+      b.classList.toggle("on", i < n);
+      b.setAttribute("aria-pressed", String(i < n));
+    });
   document.getElementById("rv-err").style.display = "none";
 }
 function submitReview(id) {
