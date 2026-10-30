@@ -86,6 +86,18 @@ function setSpec(s) {
   renderChips();
   renderProfessionals();
 }
+function clearProfessionalFilters() {
+  document.getElementById("search-input").value = "";
+  document.getElementById("city-select").value = "all";
+  document.getElementById("hosp-select").value = "0";
+  document.getElementById("rating-select").value = "0";
+  document.getElementById("availability-select").value = "any";
+  document.getElementById("sort-select").value = "rating";
+  activeSpec = "Todas";
+  activeHosp = "0";
+  renderChips();
+  renderProfessionals();
+}
 function renderHospSelect() {
   document.getElementById("hosp-select").innerHTML =
     '<option value="0">Todos los centros</option>' +
@@ -131,7 +143,7 @@ function renderProfessionals() {
   document.getElementById("result-count").textContent = `${list.length} ${list.length === 1 ? "profesional encontrado" : "profesionales encontrados"}`;
   document.getElementById("prof-list").innerHTML =
     list.map((p) => profCard(p)).join("") ||
-    '<p class="muted">Sin resultados para esta búsqueda.</p>';
+    '<div class="card no-results"><div class="no-results-icon">⌕</div><h2>No encontramos profesionales</h2><p class="h-sub">Probá con otro nombre o quitá alguno de los filtros.</p><button class="btn-outline" type="button" onclick="clearProfessionalFilters()">Quitar todos los filtros</button></div>';
 }
 function renderRanking() {
   document.getElementById("rank-list").innerHTML = [...P]

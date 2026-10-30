@@ -708,6 +708,10 @@ textarea.field {
 .prof-card .p-name { font-size: 16px; }
 .prof-list { gap: 14px; }
 #view-buscar .prof-list { grid-template-columns: 1fr; }
+.no-results { padding: 34px 20px; text-align: center; }
+.no-results-icon { width: 48px; height: 48px; display: grid; place-items: center; margin: 0 auto 12px; border-radius: 16px; color: var(--green-d); background: var(--green-l); font-size: 30px; }
+.no-results h2 { font-size: 17px; }
+.no-results .btn-outline { margin-top: 18px; }
 @media (max-width: 620px) { .booking-fields { grid-template-columns: 1fr; } .appointment-card { align-items: flex-start; flex-direction: column; } .appointment-card .btn-outline { width: 100%; } }
 @media (max-width: 720px) { .filter-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } .search-panel { padding: 14px; } }
 @media (max-width: 380px) { .filter-row { grid-template-columns: 1fr; } }
