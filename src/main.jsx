@@ -18,6 +18,7 @@ function App() {
   const [selected, setSelected] = useState(null);
   const [user, setUser] = useState(null);
   const [appointments, setAppointments] = useState([]);
+  const [managedAppointments, setManagedAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
@@ -43,6 +44,9 @@ function App() {
         if (session.user?.rol === "paciente") {
           const result = await api.getAppointments();
           if (active) setAppointments(result.appointments);
+        } else if (["profesional", "admin"].includes(session.user?.rol)) {
+          const result = await api.getManagedAppointments();
+          if (active) setManagedAppointments(result.appointments);
         }
       } catch (loadError) {
         if (active) setError(loadError.message || "No se pudo conectar con el servidor.");
@@ -103,6 +107,9 @@ function App() {
       if (response.user.rol === "paciente") {
         const result = await api.getAppointments();
         setAppointments(result.appointments);
+      } else if (["profesional", "admin"].includes(response.user.rol)) {
+        const result = await api.getManagedAppointments();
+        setManagedAppointments(result.appointments);
       }
       if (pendingBooking) {
         const booking = pendingBooking;
@@ -130,8 +137,17 @@ function App() {
     } catch (bookingError) { setError(bookingError.message); }
   }
 
+  async function updateManagedAppointment(id, status) {
+    try {
+      await api.updateAppointmentStatus(id, status);
+      const result = await api.getManagedAppointments();
+      setManagedAppointments(result.appointments);
+      flash("Estado del turno actualizado.");
+    } catch (statusError) { setError(statusError.message); }
+  }
+
   async function signOut() {
-    try { await api.logout(); } finally { setUser(null); setAppointments([]); navigate("inicio"); flash("Sesión cerrada."); }
+    try { await api.logout(); } finally { setUser(null); setAppointments([]); setManagedAppointments([]); navigate("inicio"); flash("Sesión cerrada."); }
   }
 
   const content = loading ? <div className="react-loading"><span className="spinner" /> Cargando MediLink…</div>
@@ -139,8 +155,9 @@ function App() {
       : page === "inicio" ? <Home catalog={catalog} onSearch={(value) => { setQuery(value); navigate("buscar"); }} onSpecialty={(value) => { setSpecialty(value); setQuery(""); navigate("buscar"); }} onProfile={openProfile} />
           : page === "buscar" ? <Search catalog={catalog} professionals={professionals} specialties={specialties} cities={cities} values={{ query, specialty, city, centerFilter, rating, sort, availability }} set={{ setQuery, setSpecialty, setCity, setCenterFilter, setRating, setSort, setAvailability }} availabilityLoading={availabilityLoading} onProfile={openProfile} onReset={() => { setQuery(""); setSpecialty("Todas"); setCity("Todas"); setCenterFilter("Todos"); setRating("0"); setSort("rating"); setAvailability("any"); }} />
           : page === "perfil" && selected ? <Profile person={selected} catalog={catalog} user={user} onBook={createBooking} onBack={() => navigate("buscar")} onLogin={() => { setPendingBooking(null); navigate("cuenta"); }} />
-            : page === "turnos" ? <Appointments appointments={appointments} catalog={catalog} user={user} onLogin={() => navigate("cuenta")} />
-              : <Account user={user} error={error} onAuth={submitAuth} onLogout={signOut} />;
+            : page === "turnos" ? (user && ["profesional", "admin"].includes(user.rol) ? <ProfessionalAgenda appointments={managedAppointments} user={user} onLogin={() => navigate("cuenta")} onUpdate={updateManagedAppointment} /> : <Appointments appointments={appointments} catalog={catalog} user={user} onLogin={() => navigate("cuenta")} />)
+              : page === "agenda" ? <ProfessionalAgenda appointments={managedAppointments} user={user} onLogin={() => navigate("cuenta")} onUpdate={updateManagedAppointment} />
+                : <Account user={user} error={error} onAuth={submitAuth} onLogout={signOut} />;
 
   const nav = <nav className={isMobile ? "mobile-tabs" : "desktop-nav"} aria-label="Navegación principal">
     {[["inicio", "⌂", "Inicio"], ["buscar", "⌕", "Buscar profesionales"], ["turnos", "▣", "Mis turnos"], ["cuenta", "◉", user ? "Mi cuenta" : "Ingresar"]].map(([id, icon, label]) => <button key={id} className={`nav-button ${page === id ? "selected" : ""}`} type="button" onClick={() => navigate(id)}><span aria-hidden="true">{icon}</span><span>{label}</span></button>)}
@@ -273,6 +290,14 @@ function Appointments({ appointments, catalog, user, onLogin }) {
   </div>;
 }
 
+function ProfessionalAgenda({ appointments, user, onLogin, onUpdate }) {
+  if (!user) return <div className="page-content"><SectionHeading title="Agenda profesional" subtitle="Ingresá para gestionar tus turnos."/><div className="empty-panel"><button className="button-primary" onClick={onLogin}>Ingresar</button></div></div>;
+  const labels = { solicitado: "Solicitado", confirmado: "Confirmado", rechazado: "Rechazado", atendido: "Atendido" };
+  return <div className="page-content"><SectionHeading title="Agenda profesional" subtitle="Gestioná las solicitudes y el estado de tus consultas."/>
+    {appointments.length ? <div className="appointment-list">{appointments.map((item) => <article className="appointment-item" key={item.id}><div className="appointment-date-icon">▣</div><div className="appointment-details"><span className={`status-pill status-${item.status}`}>{labels[item.status] || item.status}</span><h3>{item.patient}</h3><p>{item.specialty} · {item.center}</p><small>{dateLabel(item.date)} · {item.time}</small><div className="appointment-actions">{item.status === "solicitado" && <><button className="button-primary" onClick={() => onUpdate(item.id, "confirmado")}>Confirmar</button><button className="button-secondary" onClick={() => onUpdate(item.id, "rechazado")}>Rechazar</button></>}{item.status === "confirmado" && <button className="button-primary" onClick={() => onUpdate(item.id, "atendido")}>Marcar atendido</button>}</div></div></article>)}</div> : <div className="empty-panel"><span>▣</span><h3>No hay turnos para gestionar</h3><p>Las nuevas solicitudes aparecerán aquí.</p></div>}
+  </div>;
+}
+
 function Account({ user, error, onAuth, onLogout }) {
   const [mode, setMode] = useState("login");
   const [busy, setBusy] = useState(false);
@@ -282,7 +307,7 @@ function Account({ user, error, onAuth, onLogout }) {
     try { await onAuth({ mode, name: data.get("name"), email: data.get("email"), password: data.get("password") }); }
     finally { setBusy(false); }
   }
-  if (user) return <div className="page-content account-page"><SectionHeading title="Mi cuenta" subtitle="Tus datos de acceso a MediLink."/><article className="account-profile"><span className="user-avatar large">{initials(user.nombre)}</span><div><p className="eyebrow">PACIENTE</p><h2>{user.nombre}</h2><p>{user.email}</p></div><button className="button-secondary" onClick={onLogout}>Cerrar sesión</button></article></div>;
+  if (user) return <div className="page-content account-page"><SectionHeading title="Mi cuenta" subtitle="Tus datos de acceso a MediLink."/><article className="account-profile"><span className="user-avatar large">{initials(user.nombre)}</span><div><p className="eyebrow">{user.rol === "profesional" ? "PROFESIONAL" : user.rol.toUpperCase()}</p><h2>{user.nombre}</h2><p>{user.email}</p></div><button className="button-secondary" onClick={onLogout}>Cerrar sesión</button></article></div>;
   return <div className="page-content account-page"><SectionHeading title="Tu espacio MediLink" subtitle="Ingresá o creá una cuenta para guardar tus solicitudes de turnos."/>
     <section className="auth-card"><div className="auth-tabs"><button className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>Iniciar sesión</button><button className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>Crear cuenta</button></div>
       <form onSubmit={submit}>{mode === "register" && <label>Nombre y apellido<input name="name" autoComplete="name" minLength="2" maxLength="100" required placeholder="Tu nombre completo"/></label>}<label>Correo electrónico<input type="email" name="email" autoComplete="email" maxLength="254" required placeholder="nombre@correo.com"/></label><label>Contraseña<input type="password" name="password" autoComplete={mode === "register" ? "new-password" : "current-password"} minLength="10" maxLength="200" required placeholder="Mínimo 10 caracteres"/></label>{error && <p className="field-error" role="alert">{error}</p>}<button className="button-primary full-width" disabled={busy}>{busy ? "Procesando…" : mode === "register" ? "Crear cuenta de paciente" : "Ingresar"}</button></form>
