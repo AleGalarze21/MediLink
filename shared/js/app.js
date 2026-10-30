@@ -26,6 +26,7 @@ function go(v) {
   if (v === "buscar") {
     renderChips();
     renderHospSelect();
+    renderCitySelect();
     renderProfessionals();
   }
   if (v === "ranking") renderRanking();

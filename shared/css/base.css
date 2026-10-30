@@ -685,4 +685,21 @@ textarea.field {
 .appointment-card p { color: var(--text-2); font-size: 13px; margin-top: 4px; }
 .appointment-date { color: var(--green-d) !important; font-weight: 700; text-transform: capitalize; }
 .empty-state { text-align: center; }
+.search-panel { margin-top: 20px; padding: 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 22px; box-shadow: var(--shadow); }
+.page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.search-panel .search-bar { background: var(--surface-2); }
+.search-bar:focus-within { border-color: var(--green); box-shadow: 0 0 0 3px rgba(15, 157, 148, .1); }
+.filter-row { display: grid; grid-template-columns: repeat(4, minmax(130px, 1fr)); gap: 10px; align-items: end; }
+.filter-row .chip-row { grid-column: 1 / -1; min-width: 0; }
+.filter-control { display: grid; gap: 6px; min-width: 0; color: var(--text-2); font-size: 11px; font-weight: 700; }
+.filter-control .sel { width: 100%; min-width: 0; }
+.prof-card { min-height: 140px; padding: 20px; }
+.prof-card:focus-visible, .chip:focus-visible, .spec-pill:focus-visible, .nav-item:focus-visible, .bn-item:focus-visible { outline: 3px solid rgba(15, 157, 148, .45); outline-offset: 2px; }
+.prof-card .p-avatar { width: 62px; height: 62px; border-radius: 20px; font-size: 17px; }
+.prof-card .p-meta { flex-wrap: wrap; }
+.prof-card .p-name { font-size: 16px; }
+.prof-list { gap: 14px; }
+#view-buscar .prof-list { grid-template-columns: 1fr; }
 @media (max-width: 620px) { .booking-fields { grid-template-columns: 1fr; } .appointment-card { align-items: flex-start; flex-direction: column; } .appointment-card .btn-outline { width: 100%; } }
+@media (max-width: 720px) { .filter-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } .search-panel { padding: 14px; } }
+@media (max-width: 380px) { .filter-row { grid-template-columns: 1fr; } }

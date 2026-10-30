@@ -48,6 +48,8 @@ const stats = (p) => {
   return { n, avg };
 };
 const specs = () => [...new Set(P.map((p) => p.spec))];
+const normalizeText = (value) => String(value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("es");
+const escapeHTML = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
 function isOpen(h) {
   const d = new Date();
   const day = d.getDay();
@@ -117,6 +119,9 @@ function availableSlots(profId, hospId, date) {
   });
   const used = getAppointments().filter((a) => a.professionalId === profId && a.centerId === Number(hospId) && a.date === date).map((a) => a.time);
   return slots.filter((slot) => !used.includes(slot));
+}
+function hasAvailableAppointments(p) {
+  return availableDates(p).some((date) => p.hosps.some((centerId) => availableSlots(p.id, centerId, date).length > 0));
 }
 function renderBookingSlots(profId) {
   const center = document.getElementById("booking-center"), date = document.getElementById("booking-date"), time = document.getElementById("booking-time");

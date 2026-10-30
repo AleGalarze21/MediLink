@@ -50,12 +50,16 @@ function heroSearch() {
     document.getElementById("hero-input").value;
   activeSpec = "Todas";
   activeHosp = "0";
+  const city = document.getElementById("city-select");
+  if (city) city.value = "all";
   go("buscar");
 }
 function quickSpec(s) {
   document.getElementById("search-input").value = "";
   activeSpec = s;
   activeHosp = "0";
+  const city = document.getElementById("city-select");
+  if (city) city.value = "all";
   go("buscar");
 }
 
@@ -80,20 +84,31 @@ function renderHospSelect() {
         `<option value="${h.id}" ${String(h.id) === activeHosp ? "selected" : ""}>${h.name}</option>`,
     ).join("");
 }
+function renderCitySelect() {
+  const select = document.getElementById("city-select");
+  if (!select) return;
+  const selected = select.value || "all";
+  select.innerHTML = '<option value="all">Todas</option>' + [...new Set(P.map((p) => p.city))].sort((a, b) => a.localeCompare(b, "es")).map((city) => `<option value="${city}">${city}</option>`).join("");
+  select.value = [...select.options].some((option) => option.value === selected) ? selected : "all";
+}
 
 function renderProfessionals() {
-  const term = (document.getElementById("search-input").value || "")
-    .toLowerCase()
-    .trim();
+  const term = normalizeText(document.getElementById("search-input").value.trim());
   const sort = document.getElementById("sort-select").value;
+  const city = document.getElementById("city-select").value;
+  const minRating = Number(document.getElementById("rating-select").value);
+  const availability = document.getElementById("availability-select").value;
   let list = P.filter(
     (p) =>
       (activeSpec === "Todas" || p.spec === activeSpec) &&
       (activeHosp === "0" || p.hosps.includes(Number(activeHosp))) &&
+      (city === "all" || p.city === city) &&
+      (!minRating || stats(p).avg >= minRating) &&
+      (availability !== "available" || hasAvailableAppointments(p)) &&
       (!term ||
         [p.name, p.spec, p.city, ...p.hosps.map((i) => hosp(i).name)]
           .join(" ")
-          .toLowerCase()
+          .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("es")
           .includes(term)),
   );
   list.sort((a, b) =>
@@ -103,8 +118,7 @@ function renderProfessionals() {
         ? stats(b).n - stats(a).n
         : stats(b).avg - stats(a).avg,
   );
-  document.getElementById("result-count").textContent =
-    `${list.length} profesional${list.length === 1 ? "" : "es"} encontrado${list.length === 1 ? "" : "s"}`;
+  document.getElementById("result-count").textContent = `${list.length} ${list.length === 1 ? "profesional encontrado" : "profesionales encontrados"}`;
   document.getElementById("prof-list").innerHTML =
     list.map((p) => profCard(p)).join("") ||
     '<p class="muted">Sin resultados para esta búsqueda.</p>';
@@ -159,7 +173,7 @@ function openProfile(id) {
   const rvHtml = p.reviews
     .map(
       (r) =>
-        `<div class="review-line"><div class="rv-top"><span>${r.a}</span><span><span class="stars">${"★".repeat(r.r)}</span><span style="color:var(--border);">${"★".repeat(5 - r.r)}</span></span></div><div class="rv-when">${timeAgo(r.d)}</div><p class="rv-text">${r.t}</p></div>`,
+        `<div class="review-line"><div class="rv-top"><span>${escapeHTML(r.a)}</span><span><span class="stars">${"★".repeat(r.r)}</span><span style="color:var(--border);">${"★".repeat(5 - r.r)}</span></span></div><div class="rv-when">${timeAgo(r.d)}</div><p class="rv-text">${escapeHTML(r.t)}</p></div>`,
     )
     .join("");
   document.getElementById("view-perfil").innerHTML = `
