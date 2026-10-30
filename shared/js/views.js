@@ -152,7 +152,7 @@ function hospCard(h, withPros) {
   </div>`;
 }
 function bookingCard(p) {
-  const dates = availableDates(p), firstDate = dates[0] || "";
+  const dates = availableDates(p);
   return `<div class="card booking-card"><p class="section-title" style="margin:0 0 12px;">Solicitar un turno</p>
     <p class="muted">Elegí un centro, una fecha y un horario disponible.</p>
     <div class="booking-fields">
@@ -170,8 +170,13 @@ function renderCentros() {
 }
 
 function openProfile(id) {
-  const p = P.find((x) => x.id === id),
-    s = stats(p);
+  const p = P.find((x) => x.id === id);
+  if (!p) {
+    document.getElementById("view-perfil").innerHTML = `<button class="back-btn" onclick="go(lastView)">${ICON.arrow} Volver</button><div class="card empty-state"><h2>No encontramos ese perfil</h2><p class="h-sub">Puede que el profesional ya no esté disponible. Volvé a la búsqueda para elegir otro.</p><button class="btn-primary" onclick="go('buscar')">Buscar profesionales</button></div>`;
+    go("perfil");
+    return;
+  }
+  const s = stats(p);
   pickedRating = 0;
   const dist = [5, 4, 3, 2, 1]
     .map((n) => {
@@ -201,9 +206,10 @@ function openProfile(id) {
         <div class="line">${ICON.cap}<span><b>Experiencia:</b> ${p.exp} años</span></div>
       </div>
       <div>
+        <p class="section-title where-title">Elegí un horario</p>
+        ${bookingCard(p)}
         <p class="section-title where-title">Dónde atiende</p>
         <div style="display:grid;gap:12px;">${p.hosps.map((i) => hospCard(hosp(i), false)).join("")}</div>
-         ${bookingCard(p)}
         <p class="section-title">Opiniones de pacientes</p>
         <div class="card">${rvHtml}</div>
         <p class="section-title">Dejá tu opinión</p>
