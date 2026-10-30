@@ -81,6 +81,13 @@ function requirePatient(req) {
   return user;
 }
 
+function requireAppointmentManager(req) {
+  const user = currentUser(req);
+  if (!user) throw new ApiError(401, "Iniciá sesión para gestionar turnos.");
+  if (!["profesional", "admin"].includes(user.rol)) throw new ApiError(403, "No tenés permisos para gestionar turnos.");
+  return user;
+}
+
 function publicCatalog() {
   const centers = db.prepare("SELECT * FROM centros ORDER BY id").all().map((center) => ({
     id: center.id, name: center.nombre, addr: center.direccion, city: center.ciudad, phone: center.telefono, note: center.nota || "",
@@ -214,6 +221,29 @@ app.get("/api/appointments", (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+app.get("/api/appointments/manage", (req, res, next) => {
+  try {
+    const user = requireAppointmentManager(req);
+    const query = `SELECT t.*, u.nombre AS paciente, u.email AS paciente_email,
+      p.nombre AS profesional, e.nombre AS especialidad, c.nombre AS centro
+      FROM turnos t
+      JOIN usuarios u ON u.id=t.paciente_id
+      JOIN profesionales p ON p.id=t.profesional_id
+      JOIN especialidades e ON e.id=p.especialidad_id
+      JOIN centros c ON c.id=t.centro_id
+      ${user.rol === "profesional" ? "WHERE t.profesional_id=?" : ""}
+      ORDER BY t.fecha, t.hora`;
+    const rows = user.rol === "profesional"
+      ? db.prepare(query).all(user.profesional_id)
+      : db.prepare(query).all();
+    res.json({ appointments: rows.map((row) => ({
+      id: row.id, patientId: row.paciente_id, patient: row.paciente, patientEmail: row.paciente_email,
+      professionalId: row.profesional_id, centerId: row.centro_id, date: row.fecha, time: row.hora,
+      status: row.estado, professional: row.profesional, specialty: row.especialidad, center: row.centro,
+    })) });
+  } catch (error) { next(error); }
+});
+
 app.post("/api/appointments", (req, res, next) => {
   try {
     const user = requirePatient(req);
@@ -227,6 +257,36 @@ app.post("/api/appointments", (req, res, next) => {
     const professional = db.prepare("SELECT nombre FROM profesionales WHERE id=?").get(professionalId);
     db.prepare("INSERT INTO notificaciones(usuario_id,evento,titulo,mensaje) VALUES(?,?,?,?) ON CONFLICT(evento) DO NOTHING").run(user.id, `turno:${result.lastInsertRowid}:solicitado`, "Solicitud registrada", `Tu solicitud con ${professional.nombre} quedó pendiente de confirmación.`);
     res.status(201).json({ appointmentId: Number(result.lastInsertRowid), status: "solicitado" });
+  } catch (error) { next(error); }
+});
+
+app.patch("/api/appointments/:id/status", (req, res, next) => {
+  try {
+    const user = requireAppointmentManager(req);
+    const appointmentId = Number(req.params.id);
+    const nextStatus = String(req.body.status || "");
+    if (!Number.isInteger(appointmentId) || !["confirmado", "rechazado", "atendido"].includes(nextStatus)) {
+      throw new ApiError(400, "El estado del turno no es válido.");
+    }
+    const appointment = db.prepare("SELECT id,paciente_id,profesional_id,estado FROM turnos WHERE id=?").get(appointmentId);
+    if (!appointment) throw new ApiError(404, "No se encontró el turno.");
+    if (user.rol === "profesional" && appointment.profesional_id !== user.profesional_id) {
+      throw new ApiError(403, "No podés modificar este turno.");
+    }
+    const allowed = { solicitado: ["confirmado", "rechazado"], confirmado: ["atendido"] };
+    if (!allowed[appointment.estado]?.includes(nextStatus)) {
+      throw new ApiError(409, `No se puede pasar de ${appointment.estado} a ${nextStatus}.`);
+    }
+    db.prepare("UPDATE turnos SET estado=?, actualizado_en=CURRENT_TIMESTAMP WHERE id=?").run(nextStatus, appointmentId);
+    const messages = {
+      confirmado: ["Turno confirmado", "Tu solicitud de turno fue confirmada."],
+      rechazado: ["Turno rechazado", "Tu solicitud de turno fue rechazada."],
+      atendido: ["Consulta atendida", "Tu turno fue marcado como atendido."],
+    };
+    const [title, message] = messages[nextStatus];
+    db.prepare("INSERT INTO notificaciones(usuario_id,evento,titulo,mensaje) VALUES(?,?,?,?) ON CONFLICT(evento) DO NOTHING")
+      .run(appointment.paciente_id, `turno:${appointmentId}:${nextStatus}`, title, message);
+    res.json({ appointmentId, status: nextStatus });
   } catch (error) { next(error); }
 });
 
