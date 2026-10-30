@@ -1,6 +1,6 @@
 // Archivo GENERADO desde database/medilink.db — no editar a mano.
 // Para actualizarlo: cd database && python export_data.py
-const H = [
+let H = [
  {
   "id": 1,
   "name": "Hospital San Martín",
@@ -137,7 +137,7 @@ const H = [
  }
 ];
 
-const P = [
+let P = [
  {
   "id": 1,
   "name": "Dr. Juan Pérez",

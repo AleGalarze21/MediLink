@@ -17,12 +17,12 @@ function renderHome() {
   const top = [...P].sort((a, b) => stats(b).avg - stats(a).avg).slice(0, 3);
   const totalRv = P.reduce((s, p) => s + p.reviews.length, 0);
   const nextAppointment = getAppointments()
-    .filter((appointment) => appointment.date >= todayISO() && appointment.status !== "Rechazado")
+    .filter((appointment) => appointment.date >= todayISO() && !["rechazado", "cancelado"].includes(String(appointment.status).toLowerCase()))
     .sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`))[0];
   const nextProfessional = nextAppointment && P.find((p) => p.id === nextAppointment.professionalId);
   const nextCenter = nextAppointment && hosp(nextAppointment.centerId);
   const appointmentPreview = nextAppointment
-    ? `<article class="appointment-preview"><div class="appointment-preview-icon">${ICON.calendar}</div><div class="appointment-preview-copy"><span class="eyebrow">Tu próximo turno · ${escapeHTML(nextAppointment.status)}</span><h2>${escapeHTML(nextProfessional?.name || "Profesional")}</h2><p>${escapeHTML(nextProfessional?.spec || "Consulta médica")} · ${escapeHTML(nextCenter?.name || "Centro de atención")}</p><p class="appointment-preview-date">${escapeHTML(dateLabel(nextAppointment.date))} · ${escapeHTML(nextAppointment.time)}</p></div><button class="btn-outline" type="button" onclick="go('turnos')">Ver mis turnos</button></article>`
+    ? `<article class="appointment-preview"><div class="appointment-preview-icon">${ICON.calendar}</div><div class="appointment-preview-copy"><span class="eyebrow">Tu próximo turno · ${escapeHTML(({ solicitado: "Solicitado", confirmado: "Confirmado", atendido: "Atendido" })[String(nextAppointment.status).toLowerCase()] || nextAppointment.status)}</span><h2>${escapeHTML(nextProfessional?.name || "Profesional")}</h2><p>${escapeHTML(nextProfessional?.spec || "Consulta médica")} · ${escapeHTML(nextCenter?.name || "Centro de atención")}</p><p class="appointment-preview-date">${escapeHTML(dateLabel(nextAppointment.date))} · ${escapeHTML(nextAppointment.time)}</p></div><button class="btn-outline" type="button" onclick="go('turnos')">Ver mis turnos</button></article>`
     : `<article class="appointment-preview appointment-preview-empty"><div class="appointment-preview-icon">${ICON.calendar}</div><div class="appointment-preview-copy"><span class="eyebrow">Tu salud, más cerca</span><h2>¿Necesitás una consulta?</h2><p>Encontrá profesionales y revisá sus horarios disponibles.</p></div><button class="btn-primary" type="button" onclick="go('buscar')">Buscar profesional</button></article>`;
   const specGrid = specs()
     .map(
@@ -200,7 +200,7 @@ function openProfile(id) {
   const rvHtml = p.reviews
     .map(
       (r) =>
-        `<div class="review-line"><div class="rv-top"><span>${escapeHTML(r.a)}</span><span><span class="stars">${"★".repeat(r.r)}</span><span style="color:var(--border);">${"★".repeat(5 - r.r)}</span></span></div><div class="rv-when">${timeAgo(r.d)}</div><p class="rv-text">${escapeHTML(r.t)}</p></div>`,
+        `<div class="review-line"><div class="rv-top"><span>${escapeHTML(r.a)}</span><span><span class="stars">${"★".repeat(r.r)}</span><span style="color:var(--border);">${"★".repeat(5 - r.r)}</span></span></div><div class="rv-when">${timeAgo(r.d)}${r.verified ? ' · <span class="review-verified">Consulta verificada</span>' : ""}</div><p class="rv-text">${escapeHTML(r.t)}</p></div>`,
     )
     .join("");
   document.getElementById("view-perfil").innerHTML = `
@@ -210,7 +210,7 @@ function openProfile(id) {
         <div class="p-avatar" style="background:${BG[p.bg][0]};color:${BG[p.bg][1]};">${p.initials}</div>
         <p class="p-name" style="font-size:18px;">${p.name}</p>
         <p class="p-spec" style="margin:3px 0 10px;font-size:13.5px;">${p.spec}</p>
-        <span class="verified">${ICON.check} Profesional verificado</span>
+        <span class="verified ${p.verified ? "" : "verification-pending"}">${ICON.check} ${p.verified ? "Profesional verificado" : "Verificación pendiente"}</span>
         <div style="margin-top:16px;"><span class="big-rating">${s.avg.toFixed(1)}</span> <span class="stars" style="font-size:20px;">★</span></div>
         <p class="muted" style="margin-top:4px;">${s.n} opiniones de pacientes</p>
         <div style="width:100%;margin-top:14px;">${dist}</div>
@@ -250,10 +250,14 @@ function setRating(n) {
     });
   document.getElementById("rv-err").style.display = "none";
 }
-function submitReview(id) {
+async function submitReview(id) {
   const t = document.getElementById("rv-text").value.trim();
   if (!pickedRating || !t) {
     document.getElementById("rv-err").style.display = "block";
+    return;
+  }
+  if (API_ENABLED) {
+    await submitVerifiedReview(id, pickedRating, t);
     return;
   }
   const n = document.getElementById("rv-name").value.trim() || "Anónimo";

@@ -46,7 +46,7 @@ for p in con.execute(
         "SELECT centro_id FROM profesional_centro WHERE profesional_id = ? ORDER BY centro_id",
         (p["id"],))]
     opiniones = [
-        {"a": o["autor"], "r": o["puntaje"], "t": o["comentario"], "d": o["fecha"]}
+        {"a": o["autor"], "r": o["puntaje"], "t": o["comentario"], "d": o["fecha"], "verified": bool(o["turno_id"]) if "turno_id" in o.keys() else False}
         for o in con.execute(
             "SELECT * FROM opiniones WHERE profesional_id = ? ORDER BY fecha DESC, id DESC",
             (p["id"],))
@@ -54,14 +54,14 @@ for p in con.execute(
     profesionales.append({
         "id": p["id"], "name": p["nombre"], "spec": p["especialidad"],
         "city": p["ciudad"], "hosps": centros_ids, "exp": p["anios_experiencia"],
-        "bg": p["color"], "reviews": opiniones,
+        "bg": p["color"], "verified": bool(p["verificado"]), "reviews": opiniones,
     })
 
 SALIDA.write_text(
     "// Archivo GENERADO desde database/medilink.db — no editar a mano.\n"
     "// Para actualizarlo: cd database && python export_data.py\n"
-    f"const H = {json.dumps(centros, ensure_ascii=False, indent=1)};\n\n"
-    f"const P = {json.dumps(profesionales, ensure_ascii=False, indent=1)};\n",
+    f"let H = {json.dumps(centros, ensure_ascii=False, indent=1)};\n\n"
+    f"let P = {json.dumps(profesionales, ensure_ascii=False, indent=1)};\n",
     encoding="utf-8",
 )
 print(f"OK: {len(centros)} centros, {len(profesionales)} profesionales -> {SALIDA}")

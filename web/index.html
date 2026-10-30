@@ -21,6 +21,7 @@
       <button class="nav-item" data-view="turnos" onclick="go('turnos')"></button>
       <button class="nav-item" data-view="ranking" onclick="go('ranking')"></button>
       <button class="nav-item" data-view="centros" onclick="go('centros')"></button>
+      <button class="nav-item" data-view="cuenta" onclick="go('cuenta')"></button>
     </nav>
   </header>
 
@@ -52,6 +53,11 @@
       <p class="h-sub">Consultá tus solicitudes y próximas consultas</p>
       <div id="appointments-list" class="appointments-list" style="margin-top:16px;"></div>
     </section>
+    <section id="view-cuenta" class="view">
+      <p class="h-title">Mi cuenta</p>
+      <p class="h-sub">Tus avisos, resultados y datos de acceso</p>
+      <div id="account-content" style="margin-top:16px;"></div>
+    </section>
     <section id="view-ranking" class="view">
       <p class="h-title">Ranking de profesionales</p>
       <p class="h-sub">Ordenados según las opiniones de los pacientes</p>
@@ -72,6 +78,7 @@
   <script src="../shared/js/icons.js"></script>
   <script src="../shared/js/helpers.js"></script>
   <script src="../shared/js/views.js"></script>
+  <script src="../shared/js/api.js"></script>
   <script src="../shared/js/app.js"></script>
 </body>
 </html>

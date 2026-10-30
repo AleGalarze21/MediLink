@@ -5,8 +5,31 @@ Esta carpeta tiene la **versión web**, la **versión móvil** y la **base de da
 
 ## Cómo abrirlo
 
-Hacé doble clic en `index.html` (o directamente en `web/index.html` o `mobile/index.html`).
-No hace falta instalar nada. Usa internet solo para cargar la tipografía.
+Para usar la API, las cuentas y los turnos guardados en SQLite, ejecutá desde la carpeta principal:
+
+```powershell
+python server.py
+```
+
+Después abrí `http://127.0.0.1:8000/` y elegí web o móvil. Python ya incluye las dependencias necesarias. Si abrís los HTML directamente, queda disponible el prototipo local con turnos guardados solo en ese navegador.
+
+El servidor escucha en `127.0.0.1` por defecto, para uso local. No lo expongas a internet ni cargues datos médicos reales: es un prototipo académico sin despliegue endurecido ni almacenamiento documental de producción.
+
+### Crear cuentas de demostración para roles internos
+
+El registro público crea cuentas de paciente. Para crear de forma interactiva una cuenta de administración:
+
+```powershell
+python server.py --create-user admin "Administración MediLink" admin@example.test
+```
+
+Para una cuenta profesional, indicá el id existente del profesional:
+
+```powershell
+python server.py --create-user profesional "Dr. Juan Pérez" profesional@example.test --professional-id 1
+```
+
+El programa solicita la contraseña sin mostrarla en pantalla. La API usa estas cuentas para comprobar permisos y transiciones de turnos.
 
 ## Estructura
 
@@ -14,6 +37,7 @@ No hace falta instalar nada. Usa internet solo para cargar la tipografía.
 medilink/
 ├── index.html              Portada con acceso a las dos versiones
 ├── README.md
+├── server.py               API local, cuentas y permisos
 │
 ├── database/               Base de datos (SQLite)
 │   ├── medilink.db         La base ya creada y con datos de ejemplo
@@ -31,6 +55,7 @@ medilink/
 │       ├── icons.js        Íconos y colores de avatar
 │       ├── helpers.js      Promedios, horarios "abierto ahora", fechas, avisos
 │       ├── views.js        Pantallas: inicio, búsqueda, ranking, centros, perfil
+│       ├── api.js          Conexión opcional con el servidor local
 │       └── app.js          Arranque y navegación
 │
 ├── web/
@@ -53,14 +78,25 @@ erDiagram
     PROFESIONALES  ||--o{ PROFESIONAL_CENTRO : "atiende en"
     CENTROS        ||--o{ PROFESIONAL_CENTRO : "tiene"
     CENTROS        ||--o{ HORARIOS_CENTRO : "abre en"
+    PROFESIONAL_CENTRO ||--o{ HORARIOS_PROFESIONAL : "define disponibilidad"
     PROFESIONALES  ||--o{ OPINIONES : "recibe"
+    USUARIOS       ||--o{ TURNOS : "solicita"
+    PROFESIONALES  ||--o{ TURNOS : "atiende"
+    CENTROS        ||--o{ TURNOS : "recibe"
+    USUARIOS       ||--o{ NOTIFICACIONES : "recibe"
+    USUARIOS       ||--o{ DOCUMENTOS_PACIENTE : "consulta"
 
     ESPECIALIDADES { int id PK  text nombre }
     CENTROS { int id PK  text nombre  text direccion  text ciudad  text telefono  text nota }
     HORARIOS_CENTRO { int id PK  int centro_id FK  text etiqueta  text dias  int hora_desde  int hora_hasta  text texto }
     PROFESIONALES { int id PK  text nombre  int especialidad_id FK  text ciudad  int anios_experiencia  int verificado  text color }
     PROFESIONAL_CENTRO { int profesional_id FK  int centro_id FK }
-    OPINIONES { int id PK  int profesional_id FK  text autor  int puntaje  text comentario  text fecha }
+    HORARIOS_PROFESIONAL { int profesional_id FK  int centro_id FK  int dia  int hora_desde  int hora_hasta }
+    USUARIOS { int id PK  text nombre  text email  text password_hash  text rol  int profesional_id FK  int activo }
+    TURNOS { int id PK  int paciente_id FK  int profesional_id FK  int centro_id FK  text fecha  text hora  text estado }
+    OPINIONES { int id PK  int profesional_id FK  int turno_id FK  text autor  int puntaje  text comentario  text fecha  int oculta }
+    NOTIFICACIONES { int id PK  int usuario_id FK  text evento  text titulo  text mensaje  int leida }
+    DOCUMENTOS_PACIENTE { int id PK  int paciente_id FK  int profesional_id FK  int turno_id FK  text titulo  text tipo  text contenido }
 ```
 
 - `profesional_centro` resuelve la relación **muchos a muchos**: un profesional atiende en varios centros y un centro tiene varios profesionales.
@@ -84,5 +120,7 @@ erDiagram
 ## Limitaciones actuales
 
 - Los teléfonos, direcciones, horarios y opiniones son **datos de ejemplo**.
-- La página lee los datos desde `shared/js/data.js` (exportado de la base). Todavía **no hay un servidor**, así que las opiniones nuevas que se escriben en la página **no se guardan en la base** y se pierden al recargar.
-- Siguiente etapa: un servidor (Python o Node) que lea y escriba directamente en `medilink.db`, y registro de usuarios para verificar las opiniones.
+- Al abrir los archivos directamente se usa `shared/js/data.js` y el modo de demostración del navegador.
+- Con `python server.py`, el catálogo, las cuentas, solicitudes de turnos, estados, reseñas verificadas y notificaciones se conectan a SQLite. La migración es aditiva y se aplica al iniciar; no recrea la base.
+- Los documentos de resultados se representan en esta etapa como metadatos protegidos; no hay carga/almacenamiento de archivos clínicos.
+- Las cuentas son locales para el prototipo. Antes de un despliegue real hacen falta HTTPS, gestión de secretos, controles contra abuso, copias de seguridad, almacenamiento clínico seguro y revisión de privacidad.
