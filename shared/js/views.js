@@ -16,6 +16,14 @@ function profCard(p, rank) {
 function renderHome() {
   const top = [...P].sort((a, b) => stats(b).avg - stats(a).avg).slice(0, 3);
   const totalRv = P.reduce((s, p) => s + p.reviews.length, 0);
+  const nextAppointment = getAppointments()
+    .filter((appointment) => appointment.date >= todayISO() && appointment.status !== "Rechazado")
+    .sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`))[0];
+  const nextProfessional = nextAppointment && P.find((p) => p.id === nextAppointment.professionalId);
+  const nextCenter = nextAppointment && hosp(nextAppointment.centerId);
+  const appointmentPreview = nextAppointment
+    ? `<article class="appointment-preview"><div class="appointment-preview-icon">${ICON.calendar}</div><div class="appointment-preview-copy"><span class="eyebrow">Tu próximo turno · ${escapeHTML(nextAppointment.status)}</span><h2>${escapeHTML(nextProfessional?.name || "Profesional")}</h2><p>${escapeHTML(nextProfessional?.spec || "Consulta médica")} · ${escapeHTML(nextCenter?.name || "Centro de atención")}</p><p class="appointment-preview-date">${escapeHTML(dateLabel(nextAppointment.date))} · ${escapeHTML(nextAppointment.time)}</p></div><button class="btn-outline" type="button" onclick="go('turnos')">Ver mis turnos</button></article>`
+    : `<article class="appointment-preview appointment-preview-empty"><div class="appointment-preview-icon">${ICON.calendar}</div><div class="appointment-preview-copy"><span class="eyebrow">Tu salud, más cerca</span><h2>¿Necesitás una consulta?</h2><p>Encontrá profesionales y revisá sus horarios disponibles.</p></div><button class="btn-primary" type="button" onclick="go('buscar')">Buscar profesional</button></article>`;
   const specGrid = specs()
     .map(
       (s) =>
@@ -34,12 +42,14 @@ function renderHome() {
         <div class="hero-search">${ICON.search}<input id="hero-input" placeholder="Ej: Cardiología, Dr. Pérez, Hospital San Martín..." onkeydown="if(event.key==='Enter')heroSearch()"><button onclick="heroSearch()">Buscar</button></div>
         <div class="spec-grid">${specGrid}</div></div>
       <div class="stat-row"><div class="stat"><b>${P.length}</b><span>Profesionales</span></div><div class="stat"><b>${H.length}</b><span>Centros de atención</span></div><div class="stat"><b>${totalRv}</b><span>Opiniones de pacientes</span></div></div>
+      ${appointmentPreview}
       <p class="section-title">Mejor valorados</p>${topList}
       <p class="section-title">Cómo funciona MediLink</p>${how}`;
   } else {
     document.getElementById("home-content").innerHTML = `
       <img class="m-logo" src="${LOGO}" alt="MediLink"><p class="h-greet">Hola 👋</p><p class="h-sub">¿A qué profesional buscás hoy?</p>
       <div class="search-bar" style="margin-top:14px;">${ICON.search}<input id="hero-input" placeholder="Nombre, especialidad, hospital..." onkeydown="if(event.key==='Enter')heroSearch()"></div>
+      ${appointmentPreview}
       <p class="section-title">Especialidades</p><div class="spec-grid" style="grid-template-columns:1fr 1fr;">${specGrid}</div>
       <p class="section-title">Mejor valorados</p>${topList}
       <p class="section-title">Cómo funciona</p>${how}`;

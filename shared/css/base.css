@@ -685,6 +685,14 @@ textarea.field {
 .appointment-card p { color: var(--text-2); font-size: 13px; margin-top: 4px; }
 .appointment-date { color: var(--green-d) !important; font-weight: 700; text-transform: capitalize; }
 .empty-state { text-align: center; }
+.appointment-preview { display: flex; align-items: center; gap: 16px; margin-top: 18px; padding: 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 22px; box-shadow: var(--shadow); }
+.appointment-preview-icon { width: 48px; height: 48px; flex: 0 0 48px; display: grid; place-items: center; border-radius: 16px; color: var(--green-d); background: var(--green-l); }
+.appointment-preview-copy { min-width: 0; flex: 1; }
+.appointment-preview-copy .eyebrow { color: var(--green-d); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+.appointment-preview-copy h2 { margin-top: 5px; font-size: 16px; }
+.appointment-preview-copy p { margin-top: 4px; color: var(--text-2); font-size: 12.5px; }
+.appointment-preview-copy .appointment-preview-date { color: var(--text); font-weight: 700; text-transform: capitalize; }
+.appointment-preview .btn-primary, .appointment-preview .btn-outline { width: auto; flex: 0 0 auto; margin-top: 0; padding: 11px 18px; }
 .search-panel { margin-top: 20px; padding: 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 22px; box-shadow: var(--shadow); }
 .page-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
 .search-panel .search-bar { background: var(--surface-2); }
