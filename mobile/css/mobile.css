@@ -59,8 +59,11 @@ body {
   height: 46px;
   width: auto;
   margin: 0 0 14px -4px;
-  mix-blend-mode: multiply;
 }
+.appointment-preview { align-items: flex-start; flex-wrap: wrap; gap: 12px; padding: 14px; }
+.appointment-preview-icon { width: 42px; height: 42px; flex-basis: 42px; }
+.appointment-preview-copy { flex-basis: calc(100% - 56px); }
+.appointment-preview .btn-primary, .appointment-preview .btn-outline { width: 100%; }
 .prof-list {
   grid-template-columns: 1fr;
 }

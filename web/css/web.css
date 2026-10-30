@@ -14,9 +14,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #fff;
-  border-radius: 12px;
-  padding: 6px 10px;
+  background: transparent;
+  padding: 6px 0;
   flex-shrink: 0;
 }
 .brand-mark {
@@ -40,6 +39,7 @@
   display: block;
   height: 32px;
   width: auto;
+  filter: brightness(1.25);
 }
 .topnav-links {
   display: flex;
@@ -145,8 +145,7 @@
     overflow-x: hidden;
   }
   .brand {
-    padding: 14px 12px;
-    border-radius: 16px;
+    padding: 14px 0;
     margin-bottom: 28px;
     justify-content: center;
   }

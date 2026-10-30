@@ -16,6 +16,14 @@ function profCard(p, rank) {
 function renderHome() {
   const top = [...P].sort((a, b) => stats(b).avg - stats(a).avg).slice(0, 3);
   const totalRv = P.reduce((s, p) => s + p.reviews.length, 0);
+  const nextAppointment = getAppointments()
+    .filter((appointment) => appointment.date >= todayISO() && !["rechazado", "cancelado"].includes(String(appointment.status).toLowerCase()))
+    .sort((a, b) => `${a.date}${a.time}`.localeCompare(`${b.date}${b.time}`))[0];
+  const nextProfessional = nextAppointment && P.find((p) => p.id === nextAppointment.professionalId);
+  const nextCenter = nextAppointment && hosp(nextAppointment.centerId);
+  const appointmentPreview = nextAppointment
+    ? `<article class="appointment-preview"><div class="appointment-preview-icon">${ICON.calendar}</div><div class="appointment-preview-copy"><span class="eyebrow">Tu próximo turno · ${escapeHTML(({ solicitado: "Solicitado", confirmado: "Confirmado", atendido: "Atendido" })[String(nextAppointment.status).toLowerCase()] || nextAppointment.status)}</span><h2>${escapeHTML(nextProfessional?.name || "Profesional")}</h2><p>${escapeHTML(nextProfessional?.spec || "Consulta médica")} · ${escapeHTML(nextCenter?.name || "Centro de atención")}</p><p class="appointment-preview-date">${escapeHTML(dateLabel(nextAppointment.date))} · ${escapeHTML(nextAppointment.time)}</p></div><button class="btn-outline" type="button" onclick="go('turnos')">Ver mis turnos</button></article>`
+    : `<article class="appointment-preview appointment-preview-empty"><div class="appointment-preview-icon">${ICON.calendar}</div><div class="appointment-preview-copy"><span class="eyebrow">Tu salud, más cerca</span><h2>¿Necesitás una consulta?</h2><p>Encontrá profesionales y revisá sus horarios disponibles.</p></div><button class="btn-primary" type="button" onclick="go('buscar')">Buscar profesional</button></article>`;
   const specGrid = specs()
     .map(
       (s) =>
@@ -34,12 +42,14 @@ function renderHome() {
         <div class="hero-search">${ICON.search}<input id="hero-input" placeholder="Ej: Cardiología, Dr. Pérez, Hospital San Martín..." onkeydown="if(event.key==='Enter')heroSearch()"><button onclick="heroSearch()">Buscar</button></div>
         <div class="spec-grid">${specGrid}</div></div>
       <div class="stat-row"><div class="stat"><b>${P.length}</b><span>Profesionales</span></div><div class="stat"><b>${H.length}</b><span>Centros de atención</span></div><div class="stat"><b>${totalRv}</b><span>Opiniones de pacientes</span></div></div>
+      ${appointmentPreview}
       <p class="section-title">Mejor valorados</p>${topList}
       <p class="section-title">Cómo funciona MediLink</p>${how}`;
   } else {
     document.getElementById("home-content").innerHTML = `
       <img class="m-logo" src="${LOGO}" alt="MediLink"><p class="h-greet">Hola 👋</p><p class="h-sub">¿A qué profesional buscás hoy?</p>
       <div class="search-bar" style="margin-top:14px;">${ICON.search}<input id="hero-input" placeholder="Nombre, especialidad, hospital..." onkeydown="if(event.key==='Enter')heroSearch()"></div>
+      ${appointmentPreview}
       <p class="section-title">Especialidades</p><div class="spec-grid" style="grid-template-columns:1fr 1fr;">${specGrid}</div>
       <p class="section-title">Mejor valorados</p>${topList}
       <p class="section-title">Cómo funciona</p>${how}`;
@@ -50,12 +60,16 @@ function heroSearch() {
     document.getElementById("hero-input").value;
   activeSpec = "Todas";
   activeHosp = "0";
+  const city = document.getElementById("city-select");
+  if (city) city.value = "all";
   go("buscar");
 }
 function quickSpec(s) {
   document.getElementById("search-input").value = "";
   activeSpec = s;
   activeHosp = "0";
+  const city = document.getElementById("city-select");
+  if (city) city.value = "all";
   go("buscar");
 }
 
@@ -63,12 +77,24 @@ function renderChips() {
   document.getElementById("chip-row").innerHTML = ["Todas", ...specs()]
     .map(
       (s) =>
-        `<button class="chip ${s === activeSpec ? "active" : ""}" onclick="setSpec('${s}')">${s}</button>`,
+        `<button class="chip ${s === activeSpec ? "active" : ""}" type="button" aria-pressed="${s === activeSpec}" onclick="setSpec('${s}')">${s}</button>`,
     )
     .join("");
 }
 function setSpec(s) {
   activeSpec = s;
+  renderChips();
+  renderProfessionals();
+}
+function clearProfessionalFilters() {
+  document.getElementById("search-input").value = "";
+  document.getElementById("city-select").value = "all";
+  document.getElementById("hosp-select").value = "0";
+  document.getElementById("rating-select").value = "0";
+  document.getElementById("availability-select").value = "any";
+  document.getElementById("sort-select").value = "rating";
+  activeSpec = "Todas";
+  activeHosp = "0";
   renderChips();
   renderProfessionals();
 }
@@ -80,20 +106,31 @@ function renderHospSelect() {
         `<option value="${h.id}" ${String(h.id) === activeHosp ? "selected" : ""}>${h.name}</option>`,
     ).join("");
 }
+function renderCitySelect() {
+  const select = document.getElementById("city-select");
+  if (!select) return;
+  const selected = select.value || "all";
+  select.innerHTML = '<option value="all">Todas</option>' + [...new Set(P.map((p) => p.city))].sort((a, b) => a.localeCompare(b, "es")).map((city) => `<option value="${city}">${city}</option>`).join("");
+  select.value = [...select.options].some((option) => option.value === selected) ? selected : "all";
+}
 
 function renderProfessionals() {
-  const term = (document.getElementById("search-input").value || "")
-    .toLowerCase()
-    .trim();
+  const term = normalizeText(document.getElementById("search-input").value.trim());
   const sort = document.getElementById("sort-select").value;
+  const city = document.getElementById("city-select").value;
+  const minRating = Number(document.getElementById("rating-select").value);
+  const availability = document.getElementById("availability-select").value;
   let list = P.filter(
     (p) =>
       (activeSpec === "Todas" || p.spec === activeSpec) &&
       (activeHosp === "0" || p.hosps.includes(Number(activeHosp))) &&
+      (city === "all" || p.city === city) &&
+      (!minRating || stats(p).avg >= minRating) &&
+      (availability !== "available" || hasAvailableAppointments(p)) &&
       (!term ||
         [p.name, p.spec, p.city, ...p.hosps.map((i) => hosp(i).name)]
           .join(" ")
-          .toLowerCase()
+          .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("es")
           .includes(term)),
   );
   list.sort((a, b) =>
@@ -103,11 +140,10 @@ function renderProfessionals() {
         ? stats(b).n - stats(a).n
         : stats(b).avg - stats(a).avg,
   );
-  document.getElementById("result-count").textContent =
-    `${list.length} profesional${list.length === 1 ? "" : "es"} encontrado${list.length === 1 ? "" : "s"}`;
+  document.getElementById("result-count").textContent = `${list.length} ${list.length === 1 ? "profesional encontrado" : "profesionales encontrados"}`;
   document.getElementById("prof-list").innerHTML =
     list.map((p) => profCard(p)).join("") ||
-    '<p class="muted">Sin resultados para esta búsqueda.</p>';
+    '<div class="card no-results"><div class="no-results-icon">⌕</div><h2>No encontramos profesionales</h2><p class="h-sub">Probá con otro nombre o quitá alguno de los filtros.</p><button class="btn-outline" type="button" onclick="clearProfessionalFilters()">Quitar todos los filtros</button></div>';
 }
 function renderRanking() {
   document.getElementById("rank-list").innerHTML = [...P]
@@ -128,7 +164,7 @@ function hospCard(h, withPros) {
   </div>`;
 }
 function bookingCard(p) {
-  const dates = availableDates(p), firstDate = dates[0] || "";
+  const dates = availableDates(p);
   return `<div class="card booking-card"><p class="section-title" style="margin:0 0 12px;">Solicitar un turno</p>
     <p class="muted">Elegí un centro, una fecha y un horario disponible.</p>
     <div class="booking-fields">
@@ -146,8 +182,13 @@ function renderCentros() {
 }
 
 function openProfile(id) {
-  const p = P.find((x) => x.id === id),
-    s = stats(p);
+  const p = P.find((x) => x.id === id);
+  if (!p) {
+    document.getElementById("view-perfil").innerHTML = `<button class="back-btn" onclick="go(lastView)">${ICON.arrow} Volver</button><div class="card empty-state"><h2>No encontramos ese perfil</h2><p class="h-sub">Puede que el profesional ya no esté disponible. Volvé a la búsqueda para elegir otro.</p><button class="btn-primary" onclick="go('buscar')">Buscar profesionales</button></div>`;
+    go("perfil");
+    return;
+  }
+  const s = stats(p);
   pickedRating = 0;
   const dist = [5, 4, 3, 2, 1]
     .map((n) => {
@@ -159,7 +200,7 @@ function openProfile(id) {
   const rvHtml = p.reviews
     .map(
       (r) =>
-        `<div class="review-line"><div class="rv-top"><span>${r.a}</span><span><span class="stars">${"★".repeat(r.r)}</span><span style="color:var(--border);">${"★".repeat(5 - r.r)}</span></span></div><div class="rv-when">${timeAgo(r.d)}</div><p class="rv-text">${r.t}</p></div>`,
+        `<div class="review-line"><div class="rv-top"><span>${escapeHTML(r.a)}</span><span><span class="stars">${"★".repeat(r.r)}</span><span style="color:var(--border);">${"★".repeat(5 - r.r)}</span></span></div><div class="rv-when">${timeAgo(r.d)}${r.verified ? ' · <span class="review-verified">Consulta verificada</span>' : ""}</div><p class="rv-text">${escapeHTML(r.t)}</p></div>`,
     )
     .join("");
   document.getElementById("view-perfil").innerHTML = `
@@ -169,7 +210,7 @@ function openProfile(id) {
         <div class="p-avatar" style="background:${BG[p.bg][0]};color:${BG[p.bg][1]};">${p.initials}</div>
         <p class="p-name" style="font-size:18px;">${p.name}</p>
         <p class="p-spec" style="margin:3px 0 10px;font-size:13.5px;">${p.spec}</p>
-        <span class="verified">${ICON.check} Profesional verificado</span>
+        <span class="verified ${p.verified ? "" : "verification-pending"}">${ICON.check} ${p.verified ? "Profesional verificado" : "Verificación pendiente"}</span>
         <div style="margin-top:16px;"><span class="big-rating">${s.avg.toFixed(1)}</span> <span class="stars" style="font-size:20px;">★</span></div>
         <p class="muted" style="margin-top:4px;">${s.n} opiniones de pacientes</p>
         <div style="width:100%;margin-top:14px;">${dist}</div>
@@ -177,17 +218,21 @@ function openProfile(id) {
         <div class="line">${ICON.cap}<span><b>Experiencia:</b> ${p.exp} años</span></div>
       </div>
       <div>
+        <p class="section-title where-title">Elegí un horario</p>
+        ${bookingCard(p)}
         <p class="section-title where-title">Dónde atiende</p>
         <div style="display:grid;gap:12px;">${p.hosps.map((i) => hospCard(hosp(i), false)).join("")}</div>
-         ${bookingCard(p)}
         <p class="section-title">Opiniones de pacientes</p>
         <div class="card">${rvHtml}</div>
         <p class="section-title">Dejá tu opinión</p>
         <div class="card">
-          <input class="field" id="rv-name" placeholder="Tu nombre (opcional)">
-          <div class="rf-stars" id="rf-stars">${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="rf-star" onclick="setRating(${n})">★</button>`).join("")}</div>
-          <textarea class="field" id="rv-text" placeholder="Contá tu experiencia con este profesional..."></textarea>
-          <p class="err" id="rv-err">Elegí una puntuación y escribí un comentario.</p>
+          <label class="field-label" for="rv-name">Tu nombre <span>(opcional)</span></label>
+          <input class="field" id="rv-name" autocomplete="name" placeholder="Cómo te llamás">
+          <span class="field-label" id="rating-label">Tu valoración</span>
+          <div class="rf-stars" id="rf-stars" role="group" aria-labelledby="rating-label">${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="rf-star" aria-label="${n} ${n === 1 ? "estrella" : "estrellas"}" aria-pressed="false" onclick="setRating(${n})">★</button>`).join("")}</div>
+          <label class="field-label" for="rv-text">Tu experiencia</label>
+          <textarea class="field" id="rv-text" maxlength="1000" required placeholder="Contá tu experiencia con este profesional..."></textarea>
+          <p class="err" id="rv-err" role="alert">Elegí una puntuación y escribí un comentario.</p>
           <button class="btn-outline" onclick="submitReview(${p.id})">Publicar opinión</button>
         </div>
       </div>
@@ -199,13 +244,20 @@ function setRating(n) {
   pickedRating = n;
   document
     .querySelectorAll(".rf-star")
-    .forEach((b, i) => b.classList.toggle("on", i < n));
+    .forEach((b, i) => {
+      b.classList.toggle("on", i < n);
+      b.setAttribute("aria-pressed", String(i < n));
+    });
   document.getElementById("rv-err").style.display = "none";
 }
-function submitReview(id) {
+async function submitReview(id) {
   const t = document.getElementById("rv-text").value.trim();
   if (!pickedRating || !t) {
     document.getElementById("rv-err").style.display = "block";
+    return;
+  }
+  if (API_ENABLED) {
+    await submitVerifiedReview(id, pickedRating, t);
     return;
   }
   const n = document.getElementById("rv-name").value.trim() || "Anónimo";

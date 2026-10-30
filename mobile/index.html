@@ -20,24 +20,35 @@
       <div class="phone-scroll">
         <section id="view-inicio" class="view active"><div id="home-content"></div></section>
         <section id="view-buscar" class="view">
-          <p class="h-title">Buscar profesionales</p>
-          <div class="search-bar" style="margin-top:14px;"><svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input id="search-input" placeholder="Nombre, especialidad, hospital o ciudad..." oninput="renderProfessionals()"></div>
+          <p class="h-title">Encontrá tu profesional</p>
+          <p class="h-sub">Elegí a quién querés consultar</p>
+          <div class="search-panel">
+          <label class="search-bar" for="search-input" style="margin-top:14px;"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><input id="search-input" type="search" placeholder="Nombre, especialidad o ciudad" oninput="renderProfessionals()"></label>
           <div class="filter-row">
             <div class="chip-row" id="chip-row"></div>
-            <select class="sel" id="hosp-select" onchange="activeHosp=this.value;renderProfessionals()"></select>
-            <select class="sel" id="sort-select" onchange="renderProfessionals()">
+            <label class="filter-control">Ciudad<select class="sel" id="city-select" onchange="renderProfessionals()"></select></label>
+            <label class="filter-control">Centro<select class="sel" id="hosp-select" onchange="activeHosp=this.value;renderProfessionals()"></select></label>
+            <label class="filter-control">Valoración<select class="sel" id="rating-select" onchange="renderProfessionals()"><option value="0">Cualquiera</option><option value="4">4 o más</option><option value="4.5">4,5 o más</option></select></label>
+            <label class="filter-control">Disponibilidad<select class="sel" id="availability-select" onchange="renderProfessionals()"><option value="any">Cualquier fecha</option><option value="available">Con horarios disponibles</option></select></label>
+            <label class="filter-control">Ordenar<select class="sel" id="sort-select" onchange="renderProfessionals()">
               <option value="rating">Mejor valorados</option>
               <option value="count">Más opiniones</option>
               <option value="name">Nombre A-Z</option>
-            </select>
+            </select></label>
           </div>
-          <p class="result-count" id="result-count"></p>
+          </div>
+          <p class="result-count" id="result-count" role="status" aria-live="polite"></p>
           <div class="prof-list" id="prof-list"></div>
         </section>
         <section id="view-turnos" class="view">
           <p class="h-title">Mis turnos</p>
           <p class="h-sub">Consultá tus solicitudes y próximas consultas</p>
           <div id="appointments-list" class="appointments-list" style="margin-top:16px;"></div>
+        </section>
+        <section id="view-cuenta" class="view">
+          <p class="h-title">Mi cuenta</p>
+          <p class="h-sub">Tus avisos y resultados</p>
+          <div id="account-content" style="margin-top:16px;"></div>
         </section>
         <section id="view-ranking" class="view">
           <p class="h-title">Ranking de profesionales</p>
@@ -57,8 +68,8 @@
       <button class="bn-item active" data-view="inicio" onclick="go('inicio')"></button>
       <button class="bn-item" data-view="buscar" onclick="go('buscar')"></button>
       <button class="bn-item" data-view="turnos" onclick="go('turnos')"></button>
-      <button class="bn-item" data-view="ranking" onclick="go('ranking')"></button>
       <button class="bn-item" data-view="centros" onclick="go('centros')"></button>
+      <button class="bn-item" data-view="cuenta" onclick="go('cuenta')"></button>
       </nav>
 
       <div class="toast" id="toast"></div>
@@ -70,6 +81,7 @@
   <script src="../shared/js/icons.js"></script>
   <script src="../shared/js/helpers.js"></script>
   <script src="../shared/js/views.js"></script>
+  <script src="../shared/js/api.js"></script>
   <script src="../shared/js/app.js"></script>
 </body>
 </html>
