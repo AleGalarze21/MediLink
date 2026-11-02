@@ -47,12 +47,12 @@ Estas historias forman el primer flujo funcional de MediLink:
 
 ### Criterios de aceptación
 
-- [ ] Buscar por nombre y mostrar resultados relevantes.
-- [ ] Buscar por especialidad y mostrar coincidencias.
-- [ ] Buscar por hospital o ciudad.
-- [ ] Combinar filtros y actualizar correctamente los resultados.
-- [ ] Mostrar un estado claro cuando no existan resultados.
-- [ ] Funcionar en web y móvil.
+- [x] Buscar por nombre y mostrar resultados relevantes.
+- [x] Buscar por especialidad y mostrar coincidencias.
+- [x] Buscar por hospital o ciudad.
+- [x] Combinar filtros y actualizar correctamente los resultados.
+- [x] Mostrar un estado claro cuando no existan resultados.
+- [x] Funcionar en web y móvil.
 
 ## HU-02 - Consultar perfil profesional
 
@@ -65,11 +65,11 @@ Estas historias forman el primer flujo funcional de MediLink:
 
 ### Criterios de aceptación
 
-- [ ] Abrir un perfil desde los resultados de búsqueda.
-- [ ] Mostrar especialidad, experiencia y datos de contacto.
-- [ ] Mostrar centros y horarios de atención.
-- [ ] Mostrar valoraciones y reseñas.
-- [ ] Informar claramente cuando el perfil no esté disponible.
+- [x] Abrir un perfil desde los resultados de búsqueda.
+- [x] Mostrar especialidad, experiencia y datos de contacto.
+- [x] Mostrar centros y horarios de atención.
+- [x] Mostrar valoraciones y reseñas.
+- [x] Informar claramente cuando el perfil no esté disponible.
 
 ## HU-03 - Solicitar un turno
 
@@ -82,11 +82,12 @@ Estas historias forman el primer flujo funcional de MediLink:
 
 ### Criterios de aceptación
 
-- [ ] Seleccionar profesional, centro, fecha y horario.
-- [ ] Mostrar únicamente horarios disponibles.
-- [ ] Registrar la solicitud con estado `Solicitado`.
-- [ ] Confirmar al paciente que la solicitud fue registrada.
-- [ ] Evitar reservar dos veces el mismo horario.
+- [x] Seleccionar profesional, centro, fecha y horario.
+- [x] Mostrar únicamente horarios disponibles.
+- [x] Registrar la solicitud con estado `Solicitado`.
+- [x] Confirmar al paciente que la solicitud fue registrada.
+- [x] Evitar reservar dos veces el mismo horario.
+- [x] Permitir que el paciente cancele un turno solicitado o confirmado.
 
 ## HU-04 - Gestionar turnos
 
@@ -99,11 +100,11 @@ Estas historias forman el primer flujo funcional de MediLink:
 
 ### Criterios de aceptación
 
-- [ ] Ver pedidos y próximos turnos en la agenda.
-- [ ] Confirmar o rechazar una solicitud.
-- [ ] Marcar como atendido un turno realizado.
-- [ ] Evitar cambios de estado inválidos.
-- [ ] Mostrar el estado actualizado al paciente.
+- [x] Ver pedidos y próximos turnos en la agenda.
+- [x] Confirmar o rechazar una solicitud.
+- [x] Marcar como atendido un turno realizado.
+- [x] Evitar cambios de estado inválidos.
+- [x] Mostrar el estado actualizado al paciente.
 
 ## HU-05 - Consultar resultados
 
@@ -181,10 +182,10 @@ Estas historias forman el primer flujo funcional de MediLink:
 
 ### Criterios de aceptación
 
-- [ ] Mostrar cantidad de búsquedas, turnos y valoraciones.
-- [ ] Filtrar indicadores por período.
-- [ ] Presentar datos legibles y consistentes.
-- [ ] Informar cuando no existan datos para el período.
+- [x] Mostrar cantidad de búsquedas, turnos y valoraciones.
+- [x] Filtrar indicadores por período.
+- [x] Presentar datos legibles y consistentes.
+- [x] Informar cuando no existan datos para el período.
 
 ## HU-10 - Administrar perfil profesional
 
@@ -197,10 +198,10 @@ Estas historias forman el primer flujo funcional de MediLink:
 
 ### Criterios de aceptación
 
-- [ ] Editar datos personales y profesionales autorizados.
-- [ ] Agregar o quitar especialidades según permisos.
-- [ ] Guardar cambios y reflejarlos en el perfil público.
-- [ ] Validar campos obligatorios.
+- [x] Editar datos personales y profesionales autorizados.
+- [x] Agregar o quitar especialidades según permisos.
+- [x] Guardar cambios y reflejarlos en el perfil público.
+- [x] Validar campos obligatorios.
 
 ## HU-11 - Gestionar centros y agenda
 
@@ -213,10 +214,10 @@ Estas historias forman el primer flujo funcional de MediLink:
 
 ### Criterios de aceptación
 
-- [ ] Registrar y actualizar datos de un centro.
-- [ ] Definir días, horarios y disponibilidad.
-- [ ] Relacionar profesionales con centros válidos.
-- [ ] No ofrecer turnos fuera de la agenda configurada.
+- [x] Registrar y actualizar datos de un centro.
+- [x] Definir días, horarios y disponibilidad.
+- [x] Relacionar profesionales con centros válidos.
+- [x] No ofrecer turnos fuera de la agenda configurada.
 
 ## HU-12 - Proteger accesos y permisos
 

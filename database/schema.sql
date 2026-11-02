@@ -7,6 +7,7 @@ PRAGMA foreign_keys = ON;
 DROP VIEW  IF EXISTS vista_profesionales_resumen;
 DROP TABLE IF EXISTS opiniones;
 DROP TABLE IF EXISTS profesional_centro;
+DROP TABLE IF EXISTS profesional_especialidad;
 DROP TABLE IF EXISTS horarios_centro;
 DROP TABLE IF EXISTS profesionales;
 DROP TABLE IF EXISTS centros;
@@ -50,6 +51,13 @@ CREATE TABLE profesionales (
     anios_experiencia INTEGER NOT NULL CHECK (anios_experiencia >= 0),
     verificado        INTEGER NOT NULL DEFAULT 1 CHECK (verificado IN (0,1)),
     color             TEXT    NOT NULL DEFAULT 'green' CHECK (color IN ('green','blue','mint'))
+);
+
+-- Relación muchos a muchos: un profesional puede tener más de una especialidad.
+CREATE TABLE profesional_especialidad (
+    profesional_id INTEGER NOT NULL REFERENCES profesionales(id) ON DELETE CASCADE,
+    especialidad_id INTEGER NOT NULL REFERENCES especialidades(id) ON DELETE CASCADE,
+    PRIMARY KEY (profesional_id, especialidad_id)
 );
 
 -- Cuentas de acceso. El registro público crea solamente pacientes.
@@ -134,6 +142,11 @@ CREATE TABLE registro_admin (
     creado_en   TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE eventos_busqueda (
+    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    creado_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Opiniones de los pacientes
 CREATE TABLE opiniones (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -147,6 +160,7 @@ CREATE TABLE opiniones (
 );
 
 CREATE INDEX idx_prof_especialidad ON profesionales(especialidad_id);
+CREATE INDEX idx_profesional_especialidad_especialidad ON profesional_especialidad(especialidad_id, profesional_id);
 CREATE INDEX idx_opiniones_prof    ON opiniones(profesional_id);
 CREATE INDEX idx_prof_centro_c     ON profesional_centro(centro_id);
 CREATE INDEX idx_horarios_centro   ON horarios_centro(centro_id);
@@ -154,6 +168,7 @@ CREATE INDEX idx_horarios_profesional ON horarios_profesional(profesional_id, ce
 CREATE INDEX idx_turnos_paciente ON turnos(paciente_id, fecha, hora);
 CREATE INDEX idx_turnos_profesional ON turnos(profesional_id, fecha, hora);
 CREATE INDEX idx_notificaciones_usuario ON notificaciones(usuario_id, creada_en);
+CREATE INDEX idx_eventos_busqueda_fecha ON eventos_busqueda(creado_en);
 CREATE INDEX idx_documentos_paciente ON documentos_paciente(paciente_id, creado_en);
 
 -- Promedio y cantidad de opiniones por profesional (lo usan búsqueda y ranking)

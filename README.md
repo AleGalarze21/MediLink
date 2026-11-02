@@ -46,7 +46,15 @@ Para crear el primer administrador en una instalación nueva, ejecutá `npm run 
 
 ## Modelo de datos
 
-El esquema principal incluye especialidades, profesionales, centros, horarios, relación profesional-centro y opiniones. Las migraciones añaden usuarios, turnos, disponibilidad por profesional, notificaciones, documentos de demostración y registro de acciones administrativas.
+El esquema principal incluye especialidades, profesionales, centros, horarios, relación profesional-centro, especialidades múltiples por profesional y opiniones. Las migraciones añaden usuarios, turnos, disponibilidad por profesional, eventos anónimos de búsqueda, notificaciones, documentos de demostración y registro de acciones administrativas.
+
+## Funciones de administración y agenda
+
+- Los profesionales pueden actualizar su perfil, administrar varias especialidades y configurar uno o varios bloques horarios por día y centro.
+- Los administradores pueden crear, editar y borrar con seguridad centros y perfiles profesionales, administrar horarios y vínculos, gestionar usuarios, verificar perfiles y moderar reseñas. La eliminación se bloquea si hay cuentas, turnos o documentos asociados.
+- El panel administrativo muestra búsquedas, turnos, reseñas y altas de cuentas por período. Las búsquedas se cuentan sin almacenar el texto ingresado.
+- Los pacientes pueden cancelar turnos solicitados o confirmados; el horario vuelve a estar disponible.
+- La base de demostración incluye un profesional adicional por cada especialidad y reseñas ficticias de 3, 4 y 5 estrellas. No son opiniones clínicas reales.
 
 ## Alcance y límites
 
