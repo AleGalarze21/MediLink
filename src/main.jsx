@@ -170,10 +170,16 @@ function App() {
           : page === "perfil" && selected ? <Profile person={selected} catalog={catalog} user={user} onBook={createBooking} onBack={() => navigate("buscar")} onLogin={() => { setPendingBooking(null); navigate("cuenta"); }} />
             : page === "turnos" ? (user && ["profesional", "admin"].includes(user.rol) ? <ProfessionalAgenda appointments={managedAppointments} user={user} onLogin={() => navigate("cuenta")} onUpdate={updateManagedAppointment} onDocumentCreated={async () => { const r = await api.getManagedAppointments(); setManagedAppointments(r.appointments); flash("Documento agregado y paciente notificado."); }} /> : <Appointments appointments={appointments} catalog={catalog} user={user} onLogin={() => navigate("cuenta")} onCancel={cancelAppointment} onReview={async (id, rating, comment) => { await api.createReview({ appointmentId: id, rating, comment }); const r = await api.getAppointments(); setAppointments(r.appointments); setCatalog(await api.getCatalog()); flash("Reseña verificada publicada."); }} />)
               : page === "agenda" ? <ProfessionalAgenda appointments={managedAppointments} user={user} onLogin={() => navigate("cuenta")} onUpdate={updateManagedAppointment} onDocumentCreated={async () => { const r = await api.getManagedAppointments(); setManagedAppointments(r.appointments); flash("Documento agregado y paciente notificado."); }} />
-                : <Account user={user} error={error} onAuth={submitAuth} onLogout={signOut} flash={flash} onRefreshCatalog={async () => { setCatalog(await api.getCatalog()); const session = await api.getUser(); setUser(session.user); }} />;
+                : page === "cuenta" ? <Account user={user} error={error} onAuth={submitAuth} onLogout={signOut} flash={flash} onRefreshCatalog={async () => { setCatalog(await api.getCatalog()); const session = await api.getUser(); setUser(session.user); }} />
+                  : user?.rol === "admin" && page === "admin-usuarios" ? <AdminUsers currentUser={user} flash={flash} />
+                    : user?.rol === "admin" && page === "admin-profesionales" ? <AdminProfessionals flash={flash} onRefreshCatalog={async () => setCatalog(await api.getCatalog())} />
+                      : user?.rol === "admin" && page === "admin-centros" ? <AdminManagement section="centers" flash={flash} onRefreshCatalog={async () => setCatalog(await api.getCatalog())} />
+                        : user?.rol === "admin" && page === "admin-resenas" ? <AdminReviews flash={flash} />
+                          : user?.rol === "admin" && page === "admin-estadisticas" ? <AdminStatistics />
+                            : <Account user={user} error={error} onAuth={submitAuth} onLogout={signOut} flash={flash} onRefreshCatalog={async () => { setCatalog(await api.getCatalog()); const session = await api.getUser(); setUser(session.user); }} />;
 
-  const nav = <nav className={isMobile ? "mobile-tabs" : "desktop-nav"} aria-label="Navegación principal">
-    {[["inicio", "⌂", "Inicio"], ["buscar", "⌕", "Buscar profesionales"], ["turnos", "▣", "Mis turnos"], ["cuenta", "◉", user ? "Mi cuenta" : "Ingresar"]].map(([id, icon, label]) => <button key={id} className={`nav-button ${page === id ? "selected" : ""}`} type="button" onClick={() => navigate(id)}><span aria-hidden="true">{icon}</span><span>{label}</span></button>)}
+  const nav = <nav className={`${isMobile ? "mobile-tabs" : "desktop-nav"} ${user?.rol === "admin" ? "admin-nav" : ""}`} aria-label="Navegación principal">
+    {[["inicio", "⌂", "Inicio"], ["buscar", "⌕", "Buscar profesionales"], ["turnos", "▣", "Mis turnos"], ["cuenta", "◉", user ? "Mi cuenta" : "Ingresar"], ...(user?.rol === "admin" ? [["admin-usuarios", "♙", "Usuarios"], ["admin-profesionales", "⚕", "Profesionales"], ["admin-centros", "⌂", "Centros"], ["admin-resenas", "★", "Reseñas"], ["admin-estadisticas", "%", "Estadísticas"]] : [])].map(([id, icon, label]) => <button key={id} className={`nav-button ${page === id ? "selected" : ""}`} type="button" onClick={() => navigate(id)}><span aria-hidden="true">{icon}</span><span>{label}</span></button>)}
   </nav>;
 
   const app = <>
@@ -315,12 +321,10 @@ function ProfessionalAgenda({ appointments, user, onLogin, onUpdate, onDocumentC
 
 function Account({ user, error, onAuth, onLogout, flash, onRefreshCatalog }) {
   const [mode, setMode] = useState("login"), [busy, setBusy] = useState(false);
-  const [notifications, setNotifications] = useState([]), [documents, setDocuments] = useState([]), [document, setDocument] = useState(null);
-  const [users, setUsers] = useState([]), [reviews, setReviews] = useState([]), [adminProfessionals, setAdminProfessionals] = useState([]), [loadError, setLoadError] = useState("");
+  const [notifications, setNotifications] = useState([]), [documents, setDocuments] = useState([]), [document, setDocument] = useState(null), [loadError, setLoadError] = useState("");
   async function loadAccount() {
     try {
       const [n, d] = await Promise.all([api.getNotifications(), api.getDocuments()]); setNotifications(n.notifications); setDocuments(d.documents);
-      if (user?.rol === "admin") { const [u, r, p] = await Promise.all([api.getAdminUsers(), api.getAdminReviews(), api.getAdminProfessionals()]); setUsers(u.users); setReviews(r.reviews); setAdminProfessionals(p.professionals); }
     } catch (e) { setLoadError(e.message); }
   }
   useEffect(() => { if (user) loadAccount(); }, [user?.id]);
@@ -330,9 +334,29 @@ function Account({ user, error, onAuth, onLogout, flash, onRefreshCatalog }) {
     {user.rol === "paciente" && <section className="content-card"><SectionHeading title="Resultados y documentación" subtitle="Documentos asociados a tus consultas."/><div className="account-list">{documents.length ? documents.map((d) => <article className="account-row" key={d.id}><div><b>{d.titulo}</b><p>{d.tipo} · {d.profesional}</p><small>{d.creado_en}</small></div><button className="button-secondary" onClick={async () => { const result = await api.getDocument(d.id); setDocument(result.document); }}>Consultar</button></article>) : <p className="muted">Todavía no hay documentos asociados a tus consultas.</p>}</div>{document && <article className="document-detail"><button className="text-action" onClick={() => setDocument(null)}>Cerrar</button><h3>{document.titulo}</h3><p>{document.tipo} · {document.profesional} · {document.creado_en}</p><pre>{document.contenido}</pre></article>}</section>}
     {user.rol === "profesional" && <section className="content-card"><SectionHeading title="Documentación emitida"/><div className="account-list">{documents.length ? documents.map((d) => <article className="account-row" key={d.id}><div><b>{d.titulo}</b><p>{d.tipo}</p><small>{d.creado_en}</small></div><button className="button-secondary" onClick={async () => { const result = await api.getDocument(d.id); setDocument(result.document); }}>Consultar</button></article>) : <p className="muted">Todavía no cargaste documentos.</p>}</div>{document && <article className="document-detail"><button className="text-action" onClick={() => setDocument(null)}>Cerrar</button><h3>{document.titulo}</h3><pre>{document.contenido}</pre></article>}</section>}
     {user.rol === "profesional" && <ProfessionalTools flash={flash} onRefreshCatalog={onRefreshCatalog} />}
-    {user.rol === "admin" && <><section className="content-card"><SectionHeading title="Usuarios y roles" subtitle="Asigná el rol de cada cuenta y vinculá las cuentas profesionales con su perfil."/><div className="account-list">{users.map((u) => <AdminUserRow key={u.id} account={u} professionals={adminProfessionals} currentUser={user} onSave={async (changes) => { await api.updateAdminUser(u.id, changes); await loadAccount(); flash("Cuenta actualizada."); }} />)}</div></section><section className="content-card"><SectionHeading title="Verificación profesional" subtitle="La insignia de perfil depende de esta verificación administrativa."/><div className="account-list">{adminProfessionals.map((p) => <article className="account-row" key={p.id}><div><b>{p.nombre}</b><p>ID {p.id} · {p.verificado ? "Verificado" : "Pendiente de verificación"}</p></div><button className="button-secondary" onClick={async () => { await api.verifyProfessional(p.id, !p.verificado); await loadAccount(); }}>{p.verificado ? "Quitar verificación" : "Verificar"}</button></article>)}</div></section><section className="content-card"><SectionHeading title="Moderación de reseñas"/><div className="account-list">{reviews.map((r) => <article className="account-row" key={r.id}><div><b>{r.autor} · {r.puntaje}/5 · {r.profesional}</b><p>{r.comentario}</p><small>{r.fecha} · {r.oculta ? "Oculta" : "Visible"}</small></div><button className="button-secondary" onClick={async () => { await api.moderateReview(r.id, !r.oculta); await loadAccount(); }}> {r.oculta ? "Publicar" : "Ocultar"} </button></article>)}</div></section><AdminManagement flash={flash} onRefreshCatalog={onRefreshCatalog} onRefreshAccount={loadAccount}/><AdminStatistics /></>}
     {loadError && <p className="field-error">{loadError}</p>}</div>;
   return <div className="page-content account-page"><SectionHeading title="Tu espacio MediLink" subtitle="Ingresá o creá una cuenta para guardar tus solicitudes de turnos."/><section className="auth-card"><div className="auth-tabs"><button className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>Iniciar sesión</button><button className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>Crear cuenta</button></div><form onSubmit={submit}>{mode === "register" && <label>Nombre y apellido<input name="name" autoComplete="name" minLength="2" maxLength="100" required placeholder="Tu nombre completo"/></label>}<label>Correo electrónico<input type="email" name="email" autoComplete="email" maxLength="254" required placeholder="nombre@correo.com"/></label><label>Contraseña<input type="password" name="password" autoComplete={mode === "register" ? "new-password" : "current-password"} minLength="10" maxLength="200" required placeholder="Mínimo 10 caracteres"/></label>{error && <p className="field-error" role="alert">{error}</p>}<button className="button-primary full-width" disabled={busy}>{busy ? "Procesando…" : mode === "register" ? "Crear cuenta de paciente" : "Ingresar"}</button></form></section></div>;
+}
+
+function AdminUsers({ currentUser, flash }) {
+  const [users, setUsers] = useState([]), [professionals, setProfessionals] = useState([]), [error, setError] = useState("");
+  async function load() { try { const [u, p] = await Promise.all([api.getAdminUsers(), api.getAdminProfessionals()]); setUsers(u.users); setProfessionals(p.professionals); } catch (e) { setError(e.message); } }
+  useEffect(() => { load(); }, []);
+  return <section className="content-card"><SectionHeading title="Usuarios y roles" subtitle="Asigná el rol de cada cuenta y vinculá las cuentas profesionales con su perfil."/><div className="account-list">{users.map((u) => <AdminUserRow key={u.id} account={u} professionals={professionals} currentUser={currentUser} onSave={async (changes) => { try { await api.updateAdminUser(u.id, changes); await load(); flash("Cuenta actualizada."); } catch (e) { setError(e.message); } }} />)}</div>{error && <p className="field-error">{error}</p>}</section>;
+}
+
+function AdminProfessionals({ flash, onRefreshCatalog }) {
+  const [professionals, setProfessionals] = useState([]), [error, setError] = useState("");
+  async function load() { try { const result = await api.getAdminProfessionals(); setProfessionals(result.professionals); } catch (e) { setError(e.message); } }
+  useEffect(() => { load(); }, []);
+  return <><section className="content-card"><SectionHeading title="Verificación profesional" subtitle="La insignia de perfil depende de esta verificación administrativa."/><div className="account-list">{professionals.map((p) => <article className="account-row" key={p.id}><div><b>{p.nombre}</b><p>ID {p.id} · {p.verificado ? "Verificado" : "Pendiente de verificación"}</p></div><button className="button-secondary" onClick={async () => { try { await api.verifyProfessional(p.id, !p.verificado); await load(); flash("Verificación actualizada."); } catch (e) { setError(e.message); } }}>{p.verificado ? "Quitar verificación" : "Verificar"}</button></article>)}</div>{error && <p className="field-error">{error}</p>}</section><AdminManagement section="professionals" flash={flash} onRefreshCatalog={onRefreshCatalog}/></>;
+}
+
+function AdminReviews({ flash }) {
+  const [reviews, setReviews] = useState([]), [error, setError] = useState("");
+  async function load() { try { const result = await api.getAdminReviews(); setReviews(result.reviews); } catch (e) { setError(e.message); } }
+  useEffect(() => { load(); }, []);
+  return <section className="content-card"><SectionHeading title="Moderación de reseñas" subtitle="Publicá u ocultá reseñas verificadas."/><div className="account-list">{reviews.map((r) => <article className="account-row" key={r.id}><div><b>{r.autor} · {r.puntaje}/5 · {r.profesional}</b><p>{r.comentario}</p><small>{r.fecha} · {r.oculta ? "Oculta" : "Visible"}</small></div><button className="button-secondary" onClick={async () => { try { await api.moderateReview(r.id, !r.oculta); await load(); flash("Reseña actualizada."); } catch (e) { setError(e.message); } }}>{r.oculta ? "Publicar" : "Ocultar"}</button></article>)}</div>{error && <p className="field-error">{error}</p>}</section>;
 }
 
 function AdminStatistics() {
@@ -349,7 +373,7 @@ function AdminStatistics() {
   </section>;
 }
 
-function AdminManagement({ flash, onRefreshCatalog, onRefreshAccount }) {
+function AdminManagement({ section = "all", flash, onRefreshCatalog, onRefreshAccount }) {
   const [centers, setCenters] = useState([]), [specialties, setSpecialties] = useState([]), [professionals, setProfessionals] = useState([]), [error, setError] = useState(""), [busy, setBusy] = useState(false);
   async function load() {
     try { const [centerData, catalog] = await Promise.all([api.getAdminCenters(), api.getCatalog()]); setCenters(centerData.centers.map((center) => ({ ...center, hours: centerData.hours.filter((row) => row.centro_id === center.id) }))); setSpecialties(catalog.specialties || []); setProfessionals(catalog.professionals || []); }
@@ -363,15 +387,15 @@ function AdminManagement({ flash, onRefreshCatalog, onRefreshAccount }) {
     finally { setBusy(false); }
   }
   return <>
-    <section className="content-card"><SectionHeading title="Centros y horarios de atención" subtitle="Creá centros y mantené actualizados sus datos y horarios de apertura."/>
+    {(section === "all" || section === "centers") && <section className="content-card"><SectionHeading title="Centros y horarios de atención" subtitle="Creá centros y mantené actualizados sus datos y horarios de apertura."/>
       <CenterForm key="new-center" busy={busy} onSave={(center) => save(() => api.createAdminCenter(center))}/>
       <div className="admin-center-list">{centers.map((center) => <CenterForm key={center.id} initial={center} busy={busy} onSave={(changes) => save(() => api.updateAdminCenter(center.id, changes))} onDelete={() => save(() => api.deleteAdminCenter(center.id))}/>)}</div>
-    </section>
-    <section className="content-card"><SectionHeading title="Agregar profesional" subtitle="El perfil aparecerá en las búsquedas y tendrá agenda en los centros seleccionados."/>
+    </section>}
+    {(section === "all" || section === "professionals") && <section className="content-card"><SectionHeading title="Agregar profesional" subtitle="El perfil aparecerá en las búsquedas y tendrá agenda en los centros seleccionados."/>
       <ProfessionalCreateForm specialties={specialties} centers={centers} busy={busy} onSave={(details) => save(() => api.createAdminProfessional(details))}/>
       <SectionHeading title="Perfiles profesionales" subtitle="Actualizá especialidades, experiencia, ciudad y centros vinculados."/>
       <div className="admin-center-list">{professionals.map((professional) => <ProfessionalAdminEditor key={professional.id} initial={professional} specialties={specialties} centers={centers} busy={busy} onSave={(changes) => save(() => api.updateAdminProfessional(professional.id, changes))} onDelete={() => save(() => api.deleteAdminProfessional(professional.id))}/>)}</div>
-    </section>
+    </section>}
     {error && <p className="field-error">{error}</p>}
   </>;
 }
