@@ -342,7 +342,8 @@ function AdminUsers({ currentUser, flash }) {
   const [users, setUsers] = useState([]), [professionals, setProfessionals] = useState([]), [error, setError] = useState("");
   async function load() { try { const [u, p] = await Promise.all([api.getAdminUsers(), api.getAdminProfessionals()]); setUsers(u.users); setProfessionals(p.professionals); } catch (e) { setError(e.message); } }
   useEffect(() => { load(); }, []);
-  return <section className="content-card"><SectionHeading title="Usuarios y roles" subtitle="Asigná el rol de cada cuenta y vinculá las cuentas profesionales con su perfil."/><div className="account-list">{users.map((u) => <AdminUserRow key={u.id} account={u} professionals={professionals} currentUser={currentUser} onSave={async (changes) => { try { await api.updateAdminUser(u.id, changes); await load(); flash("Cuenta actualizada."); } catch (e) { setError(e.message); } }} />)}</div>{error && <p className="field-error">{error}</p>}</section>;
+  const groups = [["admin", "Administradores"], ["profesional", "Profesionales"], ["paciente", "Pacientes"]];
+  return <div className="admin-user-groups"><SectionHeading title="Usuarios y roles" subtitle="Las cuentas están agrupadas por rol. Podés cambiar el rol desde cada usuario."/>{groups.map(([role, title]) => { const members = users.filter((u) => u.rol === role); return <section className="content-card" key={role}><SectionHeading title={`${title} (${members.length})`}/><div className="account-list">{members.length ? members.map((u) => <AdminUserRow key={u.id} account={u} professionals={professionals} currentUser={currentUser} onSave={async (changes) => { try { await api.updateAdminUser(u.id, changes); await load(); flash("Cuenta actualizada."); } catch (e) { setError(e.message); } }} />) : <p className="muted">No hay cuentas con este rol.</p>}</div></section>; })}{error && <p className="field-error">{error}</p>}</div>;
 }
 
 function AdminProfessionals({ flash, onRefreshCatalog }) {
