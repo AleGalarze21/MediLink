@@ -261,6 +261,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .admin-period-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
 .admin-period-form input { display: block; }
 .admin-stats-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 18px 0; }
+.admin-user-subheading { margin: 18px 0 0; font-size: 14px; }
 .admin-table-wrap { overflow-x: auto; margin: 12px 0; border: 1px solid var(--react-line); border-radius: 12px; }
 .admin-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; }
 .admin-table th, .admin-table td { padding: 10px 12px; border-bottom: 1px solid var(--react-line); white-space: nowrap; }
@@ -276,3 +277,5 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .schedule-blocks { display: grid; gap: 8px; }
 .schedule-row { display: grid; grid-template-columns: minmax(100px, 1fr) minmax(100px, 1fr) auto; gap: 10px; align-items: end; }
 .schedule-row input[type="number"] { width: 100%; }
+.professional-editor { scroll-margin-top: 24px; transition: box-shadow .2s ease, border-color .2s ease; }
+.professional-editor.admin-editor-focus { border-color: var(--react-teal); box-shadow: 0 0 0 3px rgba(11, 167, 166, .18); }
