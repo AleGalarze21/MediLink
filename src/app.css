@@ -133,6 +133,22 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .account-profile > div { flex: 1; }
 .account-profile h2 { margin-top: 4px; font-size: 17px; }
 .account-profile p:last-child { margin-top: 4px; color: var(--react-muted); font-size: 12px; }
+.account-list { display: grid; gap: 10px; }
+.account-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px; border: 1px solid var(--react-line); border-radius: 12px; background: #fff; }
+.account-row > div { min-width: 0; flex: 1; }
+.account-row p, .account-row small { display: block; margin-top: 5px; color: var(--react-muted); font-size: 11px; line-height: 1.5; }
+.account-row b { font-size: 12px; }
+.review-compose, .document-compose { display: grid; gap: 10px; margin-top: 12px; padding: 14px; border: 1px solid var(--react-line); border-radius: 12px; background: #f8fafb; }
+.review-compose form, .document-compose { display: grid; gap: 10px; }
+.review-compose label, .document-compose label, .admin-user-row label { display: grid; gap: 6px; color: var(--react-muted); font-size: 11px; font-weight: 700; }
+.review-compose select, .review-compose textarea, .document-compose input, .document-compose textarea, .admin-user-row input, .admin-user-row select { width: 100%; min-height: 38px; border: 1px solid var(--react-line); border-radius: 9px; padding: 8px 10px; background: #fff; color: #334155; font: inherit; }
+.review-compose textarea, .document-compose textarea { min-height: 90px; resize: vertical; }
+.document-detail { margin-top: 12px; padding: 16px; border: 1px solid var(--react-line); border-radius: 12px; background: #f8fafb; }
+.document-detail h3 { margin: 10px 0; }
+.document-detail p { color: var(--react-muted); font-size: 11px; }
+.document-detail pre { overflow-wrap: anywhere; white-space: pre-wrap; margin-top: 12px; font: inherit; font-size: 12px; line-height: 1.6; }
+.admin-user-row { flex-wrap: wrap; }
+.admin-user-row label { min-width: 125px; }
 .auth-card { max-width: 520px; margin: 20px auto; padding: 22px; border: 1px solid var(--react-line); border-radius: 18px; background: #fff; box-shadow: 0 8px 30px rgba(20,37,55,.05); }
 .auth-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 18px; padding: 4px; border-radius: 12px; background: #f3f6f8; }
 .auth-tabs button { min-height: 38px; border: 0; border-radius: 9px; background: transparent; color: var(--react-muted); font-size: 12px; font-weight: 700; }
@@ -192,6 +208,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .mobile-main .account-profile { flex-wrap: wrap; padding: 16px; }
 .mobile-main .account-profile > div { min-width: calc(100% - 76px); }
 .mobile-main .account-profile > button { width: 100%; }
+.mobile-main .account-row { align-items: flex-start; flex-wrap: wrap; }
+.mobile-main .account-row > div { flex-basis: 100%; }
+.mobile-main .admin-user-row label { flex: 1; }
 .mobile-main .react-toast { right: 15px; bottom: 78px; left: 15px; max-width: none; text-align: center; }
 
 @media (max-width: 900px) {
