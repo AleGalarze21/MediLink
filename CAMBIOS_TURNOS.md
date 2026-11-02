@@ -58,3 +58,17 @@ Contraseña: Doctor12345!
 ```
 
 Esta cuenta es únicamente para pruebas locales y no debe utilizarse en producción.
+
+
+## Perfiles, centros, estadisticas y datos de muestra
+
+- Se permite administrar varias especialidades por profesional y actualizar perfil, ciudad y experiencia.
+- Los profesionales editan sus horarios semanales por centro; la disponibilidad publica respeta tanto la agenda profesional como la apertura del centro.
+- Administracion puede crear y actualizar centros y horarios, crear perfiles y vincularlos a centros.
+- Se agregaron estadisticas por rango de fechas para busquedas, turnos, resenas visibles y altas de usuarios. Solo se registra el conteo de busquedas, no el texto ingresado.
+- Los pacientes pueden cancelar turnos solicitados o confirmados.
+- Se agrego un medico ficticio por especialidad y tres resenas de muestra por medico, con calificaciones de 3, 4 y 5 estrellas.
+
+- La agenda profesional ahora admite varios bloques en un mismo día; no permite bloques superpuestos.
+- Se pueden borrar centros y perfiles sin datos asociados. El servidor bloquea eliminaciones que afectarían cuentas, turnos, documentos o profesionales vinculados.
+- Se probaron los flujos de alta, edición y borrado protegido en una copia temporal de la base, además de perfil, agenda, disponibilidad, reserva, cancelación y estadísticas.

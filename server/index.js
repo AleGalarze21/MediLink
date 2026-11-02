@@ -119,15 +119,18 @@ function publicCatalog() {
       .map((row) => ({ l: row.etiqueta, d: row.dias.split(",").map(Number), f: row.hora_desde, t: row.hora_hasta, x: row.texto })),
   }));
   const professionals = db.prepare("SELECT p.*, e.nombre AS especialidad FROM profesionales p JOIN especialidades e ON e.id=p.especialidad_id ORDER BY p.id").all().map((professional) => {
+    const specialties = db.prepare("SELECT e.nombre FROM profesional_especialidad pe JOIN especialidades e ON e.id=pe.especialidad_id WHERE pe.profesional_id=? ORDER BY e.nombre").all(professional.id).map((row) => row.nombre);
+    if (!specialties.length) specialties.push(professional.especialidad);
     const reviews = db.prepare("SELECT id,autor,puntaje,comentario,fecha,turno_id FROM opiniones WHERE profesional_id=? AND oculta=0 ORDER BY fecha DESC,id DESC").all(professional.id)
       .map((review) => ({ id: review.id, a: review.autor, r: review.puntaje, t: review.comentario, d: review.fecha, verified: review.turno_id !== null }));
     return {
-      id: professional.id, name: professional.nombre, spec: professional.especialidad, city: professional.ciudad,
+      id: professional.id, name: professional.nombre, spec: specialties.join(" · "), specs: specialties, city: professional.ciudad,
       hosps: db.prepare("SELECT centro_id FROM profesional_centro WHERE profesional_id=? ORDER BY centro_id").all(professional.id).map((row) => row.centro_id),
       exp: professional.anios_experiencia, bg: professional.color, verified: Boolean(professional.verificado), reviews,
     };
   });
-  return { centers, professionals };
+  const specialties = db.prepare("SELECT id,nombre AS name FROM especialidades ORDER BY nombre").all();
+  return { centers, professionals, specialties };
 }
 
 function slotsFor(professionalId, centerId, isoDate) {
@@ -137,13 +140,40 @@ function slotsFor(professionalId, centerId, isoDate) {
   const hours = db.prepare("SELECT hora_desde,hora_hasta FROM horarios_profesional WHERE profesional_id=? AND centro_id=? AND dia=?").all(professionalId, centerId, day);
   const slots = new Set();
   for (const row of hours) for (let hour = row.hora_desde; hour < row.hora_hasta; hour++) slots.add(`${String(hour).padStart(2, "0")}:00`);
+  const centerHours = db.prepare("SELECT dias,hora_desde,hora_hasta FROM horarios_centro WHERE centro_id=?").all(centerId);
+  const withinCenterHours = [...slots].filter((slot) => centerHours.some((row) => row.dias.split(",").map(Number).includes(day) && Number(slot.slice(0, 2)) >= row.hora_desde && Number(slot.slice(0, 2)) < row.hora_hasta));
   const occupied = new Set(db.prepare("SELECT hora FROM turnos WHERE profesional_id=? AND centro_id=? AND fecha=? AND estado IN ('solicitado','confirmado','atendido')").all(professionalId, centerId, isoDate).map((row) => row.hora));
   const now = new Date();
   const localToday = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   if (isoDate === localToday) {
-    for (const slot of slots) if (slot <= `${String(now.getHours()).padStart(2, "0")}:00`) occupied.add(slot);
+    for (const slot of withinCenterHours) if (slot <= `${String(now.getHours()).padStart(2, "0")}:00`) occupied.add(slot);
   }
-  return [...slots].filter((slot) => !occupied.has(slot)).sort();
+  return withinCenterHours.filter((slot) => !occupied.has(slot)).sort();
+}
+
+function validText(value, min, max) {
+  const text = String(value ?? "").trim();
+  return text.length >= min && text.length <= max ? text : null;
+}
+
+function normalizeCenterHours(hours) {
+  if (!Array.isArray(hours) || hours.length < 1 || hours.length > 14) throw new ApiError(400, "Indicá al menos un horario de atención.");
+  return hours.map((row) => {
+    const label = validText(row.label, 2, 80), start = Number(row.start), end = Number(row.end);
+    const days = [...new Set((Array.isArray(row.days) ? row.days : String(row.days || "").split(",")).map(Number))].sort();
+    if (!label || !days.length || days.some((day) => !Number.isInteger(day) || day < 0 || day > 6)
+      || !Number.isInteger(start) || start < 0 || start > 23 || !Number.isInteger(end) || end < 1 || end > 24 || end <= start) {
+      throw new ApiError(400, "Revisá la etiqueta, los días y las horas del centro.");
+    }
+    const clock = (hour) => `${String(hour).padStart(2, "0")}:00`;
+    return { label, days, start, end, text: `${clock(start)} – ${clock(end)}` };
+  });
+}
+
+function replaceCenterHours(centerId, hours) {
+  db.prepare("DELETE FROM horarios_centro WHERE centro_id=?").run(centerId);
+  const insert = db.prepare("INSERT INTO horarios_centro(centro_id,etiqueta,dias,hora_desde,hora_hasta,texto) VALUES(?,?,?,?,?,?)");
+  for (const row of hours) insert.run(centerId, row.label, row.days.join(","), row.start, row.end, row.text);
 }
 
 const app = express();
@@ -165,7 +195,102 @@ app.use((req, res, next) => {
 
 app.get("/api/health", (_req, res) => res.json({ ok: true, service: "MediLink Node/Express" }));
 app.get("/api/catalog", (_req, res) => res.json(publicCatalog()));
+app.post("/api/search-events", (_req, res, next) => {
+  try {
+    db.prepare("INSERT INTO eventos_busqueda DEFAULT VALUES").run();
+    res.status(202).json({ ok: true });
+  } catch (error) { next(error); }
+});
 app.get("/api/auth/me", (req, res) => res.json({ user: currentUser(req) }));
+
+app.get("/api/professional/profile", (req, res, next) => {
+  try {
+    const user = currentUser(req);
+    if (!user) throw new ApiError(401, "Iniciá sesión para editar tu perfil.");
+    if (user.rol !== "profesional") throw new ApiError(403, "Esta función es exclusiva para profesionales.");
+    const profile = db.prepare("SELECT id,nombre,especialidad_id,ciudad,anios_experiencia FROM profesionales WHERE id=?").get(user.profesional_id);
+    profile.specialtyIds = db.prepare("SELECT especialidad_id FROM profesional_especialidad WHERE profesional_id=? ORDER BY especialidad_id").all(user.profesional_id).map((row) => row.especialidad_id);
+    if (!profile.specialtyIds.length) profile.specialtyIds = [profile.especialidad_id];
+    res.json({ profile, specialties: db.prepare("SELECT id,nombre FROM especialidades ORDER BY nombre").all() });
+  } catch (error) { next(error); }
+});
+
+app.patch("/api/professional/profile", (req, res, next) => {
+  try {
+    const user = currentUser(req);
+    if (!user) throw new ApiError(401, "Iniciá sesión para editar tu perfil.");
+    if (user.rol !== "profesional") throw new ApiError(403, "Esta función es exclusiva para profesionales.");
+    const name = validText(req.body.name, 3, 120), city = validText(req.body.city, 2, 120);
+    const specialtyIds = [...new Set((Array.isArray(req.body.specialtyIds) ? req.body.specialtyIds : [req.body.specialtyId]).map(Number))], experience = Number(req.body.experience);
+    if (!name || !city || !specialtyIds.length || specialtyIds.some((id) => !Number.isInteger(id) || !db.prepare("SELECT 1 FROM especialidades WHERE id=?").get(id)) || !Number.isInteger(experience) || experience < 0 || experience > 70) throw new ApiError(400, "Revisá nombre, ciudad, especialidades y años de experiencia.");
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.prepare("UPDATE profesionales SET nombre=?,especialidad_id=?,ciudad=?,anios_experiencia=? WHERE id=?").run(name, specialtyIds[0], city, experience, user.profesional_id);
+      db.prepare("UPDATE usuarios SET nombre=? WHERE id=?").run(name, user.id);
+      db.prepare("DELETE FROM profesional_especialidad WHERE profesional_id=?").run(user.profesional_id);
+      const insert = db.prepare("INSERT INTO profesional_especialidad(profesional_id,especialidad_id) VALUES(?,?)");
+      for (const id of specialtyIds) insert.run(user.profesional_id, id);
+      audit(user.id, "perfil_profesional_actualizado", "profesional", user.profesional_id);
+      db.exec("COMMIT");
+    } catch (error) { db.exec("ROLLBACK"); throw error; }
+    res.json({ ok: true });
+  } catch (error) { next(error); }
+});
+
+app.get("/api/professional/schedule", (req, res, next) => {
+  try {
+    const user = currentUser(req);
+    if (!user) throw new ApiError(401, "Iniciá sesión para consultar tu agenda.");
+    if (user.rol !== "profesional") throw new ApiError(403, "Esta función es exclusiva para profesionales.");
+    const centers = db.prepare("SELECT c.id,c.nombre FROM centros c JOIN profesional_centro pc ON pc.centro_id=c.id WHERE pc.profesional_id=? ORDER BY c.nombre").all(user.profesional_id);
+    const rows = db.prepare("SELECT centro_id,dia,hora_desde,hora_hasta FROM horarios_profesional WHERE profesional_id=? ORDER BY centro_id,dia,hora_desde").all(user.profesional_id);
+    res.json({ centers, schedule: rows.map((row) => ({ centerId: row.centro_id, day: row.dia, start: row.hora_desde, end: row.hora_hasta })) });
+  } catch (error) { next(error); }
+});
+
+app.put("/api/professional/schedule", (req, res, next) => {
+  try {
+    const user = currentUser(req);
+    if (!user) throw new ApiError(401, "Iniciá sesión para editar tu agenda.");
+    if (user.rol !== "profesional") throw new ApiError(403, "Esta función es exclusiva para profesionales.");
+    if (!Array.isArray(req.body.schedule) || req.body.schedule.length > 98) throw new ApiError(400, "La agenda no tiene un formato válido.");
+    const linked = new Set(db.prepare("SELECT centro_id FROM profesional_centro WHERE profesional_id=?").all(user.profesional_id).map((row) => row.centro_id));
+    const schedule = req.body.schedule.map((row) => ({ centerId: Number(row.centerId), day: Number(row.day), start: Number(row.start), end: Number(row.end) }));
+    const keys = new Set();
+    for (const row of schedule) {
+      const key = `${row.centerId}:${row.day}:${row.start}`;
+      if (!linked.has(row.centerId) || !Number.isInteger(row.day) || row.day < 0 || row.day > 6 || !Number.isInteger(row.start) || row.start < 0 || row.start > 23 || !Number.isInteger(row.end) || row.end < 1 || row.end > 24 || row.end <= row.start || keys.has(key)) {
+        throw new ApiError(400, "Revisá centros, días y rangos horarios de la agenda.");
+      }
+      keys.add(key);
+    }
+    const byDay = new Map();
+    for (const row of schedule) {
+      const key = `${row.centerId}:${row.day}`;
+      byDay.set(key, [...(byDay.get(key) || []), row]);
+    }
+    for (const blocks of byDay.values()) {
+      blocks.sort((a, b) => a.start - b.start);
+      for (let index = 1; index < blocks.length; index++) if (blocks[index].start < blocks[index - 1].end) throw new ApiError(400, "Los bloques horarios no pueden superponerse.");
+    }
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      const future = db.prepare("SELECT fecha,hora,centro_id FROM turnos WHERE profesional_id=? AND estado IN ('solicitado','confirmado') AND fecha>=date('now')").all(user.profesional_id);
+      for (const appointment of future) {
+        const day = new Date(`${appointment.fecha}T12:00:00`).getDay(), hour = Number(appointment.hora.slice(0, 2));
+        if (!schedule.some((row) => row.centerId === appointment.centro_id && row.day === day && hour >= row.start && hour < row.end)) {
+          throw new ApiError(409, "No se puede quitar un horario que tiene turnos solicitados o confirmados.");
+        }
+      }
+      db.prepare("DELETE FROM horarios_profesional WHERE profesional_id=?").run(user.profesional_id);
+      const insert = db.prepare("INSERT INTO horarios_profesional(profesional_id,centro_id,dia,hora_desde,hora_hasta) VALUES(?,?,?,?,?)");
+      for (const row of schedule) insert.run(user.profesional_id, row.centerId, row.day, row.start, row.end);
+      audit(user.id, "agenda_profesional_actualizada", "profesional", user.profesional_id);
+      db.exec("COMMIT");
+    } catch (error) { db.exec("ROLLBACK"); throw error; }
+    res.json({ ok: true });
+  } catch (error) { next(error); }
+});
 
 app.post("/api/auth/register", (req, res, next) => {
   try {
@@ -252,6 +377,20 @@ app.get("/api/appointments", (req, res, next) => {
     const user = requirePatient(req);
     const rows = db.prepare("SELECT t.*,p.nombre AS profesional,e.nombre AS especialidad,c.nombre AS centro,EXISTS(SELECT 1 FROM opiniones o WHERE o.turno_id=t.id) AS tiene_resena FROM turnos t JOIN profesionales p ON p.id=t.profesional_id JOIN especialidades e ON e.id=p.especialidad_id JOIN centros c ON c.id=t.centro_id WHERE t.paciente_id=? ORDER BY t.fecha,t.hora").all(user.id);
     res.json({ appointments: rows.map((row) => ({ id: row.id, professionalId: row.profesional_id, centerId: row.centro_id, date: row.fecha, time: row.hora, status: row.estado, hasReview: Boolean(row.tiene_resena), professional: row.profesional, specialty: row.especialidad, center: row.centro })) });
+  } catch (error) { next(error); }
+});
+
+app.patch("/api/appointments/:id/cancel", (req, res, next) => {
+  try {
+    const user = requirePatient(req), id = Number(req.params.id);
+    if (!Number.isInteger(id) || id < 1) throw new ApiError(400, "Turno no válido.");
+    const appointment = db.prepare("SELECT id,estado FROM turnos WHERE id=? AND paciente_id=?").get(id, user.id);
+    if (!appointment) throw new ApiError(404, "No se encontró ese turno.");
+    if (!["solicitado", "confirmado"].includes(appointment.estado)) throw new ApiError(409, "Solo podés cancelar turnos solicitados o confirmados.");
+    db.prepare("UPDATE turnos SET estado='cancelado',actualizado_en=CURRENT_TIMESTAMP WHERE id=?").run(id);
+    audit(user.id, "turno_cancelado_por_paciente", "turno", id);
+    notify(user.id, `turno:${id}:cancelado`, "Turno cancelado", "Cancelaste tu solicitud. El horario volvió a quedar disponible.");
+    res.json({ appointmentId: id, status: "cancelado" });
   } catch (error) { next(error); }
 });
 
@@ -414,6 +553,123 @@ app.post("/api/documents", (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+app.get("/api/admin/stats", (req, res, next) => {
+  try {
+    requireAdmin(req);
+    const today = new Date(), defaultFrom = new Date(today); defaultFrom.setDate(today.getDate() - 29);
+    const iso = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    const from = String(req.query.from || iso(defaultFrom)), to = String(req.query.to || iso(today));
+    const validDate = (value) => /^\d{4}-\d{2}-\d{2}$/.test(value) && iso(new Date(`${value}T12:00:00`)) === value;
+    if (!validDate(from) || !validDate(to) || from > to || (new Date(`${to}T12:00:00`) - new Date(`${from}T12:00:00`)) / 86400000 > 366) {
+      throw new ApiError(400, "Elegí un período válido de hasta un año.");
+    }
+    const count = (sql) => db.prepare(sql).get(from, to).total;
+    const series = db.prepare("SELECT day, SUM(searches) AS searches, SUM(appointments) AS appointments, SUM(reviews) AS reviews FROM (SELECT date(creado_en) AS day, COUNT(*) AS searches, 0 AS appointments, 0 AS reviews FROM eventos_busqueda WHERE date(creado_en) BETWEEN ? AND ? GROUP BY date(creado_en) UNION ALL SELECT date(creado_en) AS day, 0, COUNT(*), 0 FROM turnos WHERE date(creado_en) BETWEEN ? AND ? GROUP BY date(creado_en) UNION ALL SELECT date(fecha) AS day, 0, 0, COUNT(*) FROM opiniones WHERE date(fecha) BETWEEN ? AND ? AND oculta=0 GROUP BY date(fecha)) GROUP BY day ORDER BY day")
+      .all(from, to, from, to, from, to);
+    const summaries = {
+      searches: count("SELECT COUNT(*) AS total FROM eventos_busqueda WHERE date(creado_en) BETWEEN ? AND ?"),
+      appointments: count("SELECT COUNT(*) AS total FROM turnos WHERE date(creado_en) BETWEEN ? AND ?"),
+      reviews: count("SELECT COUNT(*) AS total FROM opiniones WHERE date(fecha) BETWEEN ? AND ? AND oculta=0"),
+      users: db.prepare("SELECT COUNT(*) AS total FROM usuarios WHERE date(creado_en) BETWEEN ? AND ?").get(from, to).total,
+    };
+    const byStatus = db.prepare("SELECT estado,COUNT(*) AS total FROM turnos WHERE date(creado_en) BETWEEN ? AND ? GROUP BY estado ORDER BY estado").all(from, to);
+    res.json({ from, to, summaries, byStatus, series });
+  } catch (error) { next(error); }
+});
+
+app.get("/api/admin/centers", (req, res, next) => {
+  try {
+    requireAdmin(req);
+    res.json({ centers: db.prepare("SELECT c.id,c.nombre,c.direccion,c.ciudad,c.telefono,c.nota,(SELECT COUNT(*) FROM profesional_centro pc WHERE pc.centro_id=c.id) AS profesionales FROM centros c ORDER BY c.nombre").all(), hours: db.prepare("SELECT centro_id,etiqueta,dias,hora_desde,hora_hasta,texto FROM horarios_centro ORDER BY centro_id,id").all() });
+  } catch (error) { next(error); }
+});
+
+app.post("/api/admin/centers", (req, res, next) => {
+  try {
+    const admin = requireAdmin(req);
+    const name = validText(req.body.name, 2, 120), address = validText(req.body.address, 3, 180), city = validText(req.body.city, 2, 120), phone = validText(req.body.phone, 5, 40), note = String(req.body.note || "").trim().slice(0, 240);
+    const hours = normalizeCenterHours(req.body.hours);
+    if (!name || !address || !city || !phone) throw new ApiError(400, "Completá nombre, dirección, ciudad y teléfono del centro.");
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      const result = db.prepare("INSERT INTO centros(nombre,direccion,ciudad,telefono,nota) VALUES(?,?,?,?,?)").run(name, address, city, phone, note || null);
+      const id = Number(result.lastInsertRowid);
+      replaceCenterHours(id, hours);
+      audit(admin.id, "centro_creado", "centro", id);
+      db.exec("COMMIT");
+      res.status(201).json({ centerId: id });
+    } catch (error) { db.exec("ROLLBACK"); throw error; }
+  } catch (error) { next(error); }
+});
+
+app.patch("/api/admin/centers/:id", (req, res, next) => {
+  try {
+    const admin = requireAdmin(req), id = Number(req.params.id);
+    if (!Number.isInteger(id) || id < 1 || !db.prepare("SELECT id FROM centros WHERE id=?").get(id)) throw new ApiError(404, "No se encontró el centro.");
+    const name = validText(req.body.name, 2, 120), address = validText(req.body.address, 3, 180), city = validText(req.body.city, 2, 120), phone = validText(req.body.phone, 5, 40), note = String(req.body.note || "").trim().slice(0, 240);
+    if (!name || !address || !city || !phone) throw new ApiError(400, "Completá nombre, dirección, ciudad y teléfono del centro.");
+    const hours = req.body.hours === undefined ? null : normalizeCenterHours(req.body.hours);
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      if (hours) {
+        const futureAppointments = db.prepare("SELECT fecha,hora FROM turnos WHERE centro_id=? AND estado IN ('solicitado','confirmado') AND fecha>=date('now')").all(id);
+        for (const appointment of futureAppointments) {
+          const day = new Date(`${appointment.fecha}T12:00:00`).getDay(), hour = Number(appointment.hora.slice(0, 2));
+          if (!hours.some((row) => row.days.includes(day) && hour >= row.start && hour < row.end)) throw new ApiError(409, "No se puede cerrar un horario que tenga turnos solicitados o confirmados.");
+        }
+      }
+      db.prepare("UPDATE centros SET nombre=?,direccion=?,ciudad=?,telefono=?,nota=? WHERE id=?").run(name, address, city, phone, note || null, id);
+      if (hours) replaceCenterHours(id, hours);
+      audit(admin.id, "centro_actualizado", "centro", id);
+      db.exec("COMMIT");
+    } catch (error) { db.exec("ROLLBACK"); throw error; }
+    res.json({ ok: true });
+  } catch (error) { next(error); }
+});
+
+app.delete("/api/admin/centers/:id", (req, res, next) => {
+  try {
+    const admin = requireAdmin(req), id = Number(req.params.id);
+    if (!Number.isInteger(id) || id < 1) throw new ApiError(400, "Centro no válido.");
+    if (!db.prepare("SELECT 1 FROM centros WHERE id=?").get(id)) throw new ApiError(404, "No se encontró el centro.");
+    if (db.prepare("SELECT 1 FROM profesional_centro WHERE centro_id=? LIMIT 1").get(id) || db.prepare("SELECT 1 FROM turnos WHERE centro_id=? LIMIT 1").get(id)) {
+      throw new ApiError(409, "Desvinculá primero los profesionales y verificá que no haya turnos asociados.");
+    }
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.prepare("DELETE FROM centros WHERE id=?").run(id);
+      audit(admin.id, "centro_eliminado", "centro", id);
+      db.exec("COMMIT");
+    } catch (error) { db.exec("ROLLBACK"); throw error; }
+    res.json({ ok: true });
+  } catch (error) { next(error); }
+});
+
+app.post("/api/admin/professionals", (req, res, next) => {
+  try {
+    const admin = requireAdmin(req), name = validText(req.body.name, 3, 120), city = validText(req.body.city, 2, 120);
+    const specialtyIds = [...new Set((req.body.specialtyIds || [req.body.specialtyId]).map(Number))], experience = Number(req.body.experience), centerIds = [...new Set((req.body.centerIds || []).map(Number))];
+    if (!name || !city || !specialtyIds.length || specialtyIds.some((specialtyId) => !Number.isInteger(specialtyId) || !db.prepare("SELECT 1 FROM especialidades WHERE id=?").get(specialtyId)) || !Number.isInteger(experience) || experience < 0 || experience > 70 || !centerIds.length || centerIds.length > 20 || centerIds.some((id) => !Number.isInteger(id) || !db.prepare("SELECT 1 FROM centros WHERE id=?").get(id))) {
+      throw new ApiError(400, "Completá nombre, especialidades, ciudad, experiencia y al menos un centro válido.");
+    }
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      const result = db.prepare("INSERT INTO profesionales(nombre,especialidad_id,ciudad,anios_experiencia,verificado,color) VALUES(?,?,?,?,0,'green')").run(name, specialtyIds[0], city, experience);
+      const id = Number(result.lastInsertRowid), link = db.prepare("INSERT INTO profesional_centro(profesional_id,centro_id) VALUES(?,?)"), schedule = db.prepare("INSERT OR IGNORE INTO horarios_profesional(profesional_id,centro_id,dia,hora_desde,hora_hasta) VALUES(?,?,?,?,?)");
+      const specialtyLink = db.prepare("INSERT INTO profesional_especialidad(profesional_id,especialidad_id) VALUES(?,?)");
+      for (const specialtyId of specialtyIds) specialtyLink.run(id, specialtyId);
+      const centerHours = db.prepare("SELECT dias,hora_desde,hora_hasta FROM horarios_centro WHERE centro_id=?");
+      for (const centerId of centerIds) {
+        link.run(id, centerId);
+        for (const row of centerHours.all(centerId)) for (const day of row.dias.split(",").map(Number)) schedule.run(id, centerId, day, row.hora_desde, row.hora_hasta);
+      }
+      audit(admin.id, "profesional_creado", "profesional", id);
+      db.exec("COMMIT");
+      res.status(201).json({ professionalId: id });
+    } catch (error) { db.exec("ROLLBACK"); throw error; }
+  } catch (error) { next(error); }
+});
+
 app.get("/api/admin/users", (req, res, next) => {
   try {
     requireAdmin(req);
@@ -460,11 +716,63 @@ app.get("/api/admin/professionals", (req, res, next) => {
 
 app.patch("/api/admin/professionals/:id", (req, res, next) => {
   try {
-    const admin = requireAdmin(req), id = Number(req.params.id), verified = req.body.verified;
-    if (!Number.isInteger(id) || id < 1 || typeof verified !== "boolean") throw new ApiError(400, "Indicá un profesional y un estado válido.");
-    const result = db.prepare("UPDATE profesionales SET verificado=? WHERE id=?").run(verified ? 1 : 0, id);
-    if (!result.changes) throw new ApiError(404, "No se encontró el profesional.");
-    audit(admin.id, verified ? "profesional_verificado" : "profesional_no_verificado", "profesional", id);
+    const admin = requireAdmin(req), id = Number(req.params.id), current = db.prepare("SELECT * FROM profesionales WHERE id=?").get(id);
+    if (!Number.isInteger(id) || id < 1 || !current) throw new ApiError(404, "No se encontr? un profesional.");
+    const verified = req.body.verified;
+    if (verified !== undefined && typeof verified !== "boolean") throw new ApiError(400, "Indic? un estado de verificaci?n v?lido.");
+    const fieldsRequested = ["name", "city", "experience", "specialtyIds"].some((field) => req.body[field] !== undefined);
+    const name = fieldsRequested ? validText(req.body.name, 3, 120) : current.nombre;
+    const city = fieldsRequested ? validText(req.body.city, 2, 120) : current.ciudad;
+    const experience = fieldsRequested ? Number(req.body.experience) : current.anios_experiencia;
+    const specialtyIds = req.body.specialtyIds === undefined
+      ? db.prepare("SELECT especialidad_id FROM profesional_especialidad WHERE profesional_id=?").all(id).map((row) => row.especialidad_id)
+      : [...new Set(req.body.specialtyIds.map(Number))];
+    if (!specialtyIds.length || specialtyIds.some((value) => !Number.isInteger(value) || !db.prepare("SELECT 1 FROM especialidades WHERE id=?").get(value)) || !name || !city || !Number.isInteger(experience) || experience < 0 || experience > 70) {
+      throw new ApiError(400, "Revis? nombre, ciudad, especialidades y experiencia.");
+    }
+    const centerIds = req.body.centerIds === undefined ? null : [...new Set(req.body.centerIds.map(Number))];
+    if (centerIds && (!centerIds.length || centerIds.length > 20 || centerIds.some((value) => !Number.isInteger(value) || !db.prepare("SELECT 1 FROM centros WHERE id=?").get(value)))) throw new ApiError(400, "Vincul? al menos un centro v?lido.");
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.prepare("UPDATE profesionales SET nombre=?,especialidad_id=?,ciudad=?,anios_experiencia=?,verificado=COALESCE(?,verificado) WHERE id=?")
+        .run(name, specialtyIds[0], city, experience, verified === undefined ? null : (verified ? 1 : 0), id);
+      db.prepare("UPDATE usuarios SET nombre=? WHERE profesional_id=?").run(name, id);
+      db.prepare("DELETE FROM profesional_especialidad WHERE profesional_id=?").run(id);
+      const insertSpecialty = db.prepare("INSERT INTO profesional_especialidad(profesional_id,especialidad_id) VALUES(?,?)");
+      for (const specialtyId of specialtyIds) insertSpecialty.run(id, specialtyId);
+      if (centerIds) {
+        const currentIds = db.prepare("SELECT centro_id FROM profesional_centro WHERE profesional_id=?").all(id).map((row) => row.centro_id);
+        for (const centerId of currentIds.filter((value) => !centerIds.includes(value))) {
+          if (db.prepare("SELECT 1 FROM turnos WHERE profesional_id=? AND centro_id=? LIMIT 1").get(id, centerId)) throw new ApiError(409, "No se puede desvincular un centro que tenga turnos registrados.");
+          db.prepare("DELETE FROM profesional_centro WHERE profesional_id=? AND centro_id=?").run(id, centerId);
+        }
+        const link = db.prepare("INSERT OR IGNORE INTO profesional_centro(profesional_id,centro_id) VALUES(?,?)"), schedule = db.prepare("INSERT OR IGNORE INTO horarios_profesional(profesional_id,centro_id,dia,hora_desde,hora_hasta) VALUES(?,?,?,?,?)"), centerHours = db.prepare("SELECT dias,hora_desde,hora_hasta FROM horarios_centro WHERE centro_id=?");
+        for (const centerId of centerIds.filter((value) => !currentIds.includes(value))) {
+          link.run(id, centerId);
+          for (const row of centerHours.all(centerId)) for (const day of row.dias.split(",").map(Number)) schedule.run(id, centerId, day, row.hora_desde, row.hora_hasta);
+        }
+      }
+      const action = verified === undefined ? "profesional_actualizado" : (verified ? "profesional_verificado" : "profesional_no_verificado");
+      audit(admin.id, action, "profesional", id);
+      db.exec("COMMIT");
+    } catch (error) { db.exec("ROLLBACK"); throw error; }
+    res.json({ ok: true });
+  } catch (error) { next(error); }
+});
+
+app.delete("/api/admin/professionals/:id", (req, res, next) => {
+  try {
+    const admin = requireAdmin(req), id = Number(req.params.id);
+    if (!Number.isInteger(id) || id < 1 || !db.prepare("SELECT 1 FROM profesionales WHERE id=?").get(id)) throw new ApiError(404, "No se encontró el profesional.");
+    if (db.prepare("SELECT 1 FROM usuarios WHERE profesional_id=? LIMIT 1").get(id) || db.prepare("SELECT 1 FROM turnos WHERE profesional_id=? LIMIT 1").get(id) || db.prepare("SELECT 1 FROM documentos_paciente WHERE profesional_id=? LIMIT 1").get(id)) {
+      throw new ApiError(409, "No se puede eliminar un perfil vinculado a una cuenta, turno o documento.");
+    }
+    db.exec("BEGIN IMMEDIATE");
+    try {
+      db.prepare("DELETE FROM profesionales WHERE id=?").run(id);
+      audit(admin.id, "profesional_eliminado", "profesional", id);
+      db.exec("COMMIT");
+    } catch (error) { db.exec("ROLLBACK"); throw error; }
     res.json({ ok: true });
   } catch (error) { next(error); }
 });

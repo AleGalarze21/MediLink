@@ -15,6 +15,14 @@ CREATE TABLE IF NOT EXISTS usuarios (
     CHECK ((rol = 'profesional' AND profesional_id IS NOT NULL) OR (rol != 'profesional' AND profesional_id IS NULL))
 );
 
+CREATE TABLE IF NOT EXISTS profesional_especialidad (
+    profesional_id INTEGER NOT NULL REFERENCES profesionales(id) ON DELETE CASCADE,
+    especialidad_id INTEGER NOT NULL REFERENCES especialidades(id) ON DELETE CASCADE,
+    PRIMARY KEY (profesional_id, especialidad_id)
+);
+INSERT OR IGNORE INTO profesional_especialidad(profesional_id,especialidad_id)
+SELECT id,especialidad_id FROM profesionales;
+
 CREATE TABLE IF NOT EXISTS turnos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     paciente_id INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
@@ -70,6 +78,12 @@ CREATE TABLE IF NOT EXISTS registro_admin (
     creado_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Conteos anónimos de consultas de búsqueda para estadísticas administrativas.
+CREATE TABLE IF NOT EXISTS eventos_busqueda (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    creado_en TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Añadidas también en CREATE TABLE para instalaciones nuevas; el servidor
 -- incorpora estas columnas con una migración segura en bases existentes.
 
@@ -79,5 +93,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_turno_horario_activo
 CREATE INDEX IF NOT EXISTS idx_turnos_paciente ON turnos(paciente_id, fecha, hora);
 CREATE INDEX IF NOT EXISTS idx_turnos_profesional ON turnos(profesional_id, fecha, hora);
 CREATE INDEX IF NOT EXISTS idx_horarios_profesional ON horarios_profesional(profesional_id, centro_id, dia);
+CREATE INDEX IF NOT EXISTS idx_profesional_especialidad_especialidad ON profesional_especialidad(especialidad_id, profesional_id);
 CREATE INDEX IF NOT EXISTS idx_notificaciones_usuario ON notificaciones(usuario_id, creada_en);
 CREATE INDEX IF NOT EXISTS idx_documentos_paciente ON documentos_paciente(paciente_id, creado_en);
+CREATE INDEX IF NOT EXISTS idx_eventos_busqueda_fecha ON eventos_busqueda(creado_en);
