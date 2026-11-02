@@ -42,6 +42,8 @@ shared/js/              Interfaz JavaScript anterior, conservada como prototipo
 
 La migración de la base se ejecuta al iniciar Express y no la recrea. Para recrear manualmente una base de demostración se puede ejecutar `python database/crear_base.py`; este comando borra y vuelve a crear el archivo SQLite.
 
+Para crear el primer administrador en una instalación nueva, ejecutá `npm run create:admin -- admin@dominio.com Nombre Apellido`. El comando genera una contraseña inicial aleatoria y la muestra una sola vez. Guardala en un lugar seguro. El administrador puede luego activar cuentas, asignar roles y moderar reseñas desde «Mi cuenta».
+
 ## Modelo de datos
 
 El esquema principal incluye especialidades, profesionales, centros, horarios, relación profesional-centro y opiniones. Las migraciones añaden usuarios, turnos, disponibilidad por profesional, notificaciones, documentos de demostración y registro de acciones administrativas.
@@ -50,6 +52,8 @@ El esquema principal incluye especialidades, profesionales, centros, horarios, r
 
 - Los profesionales, centros, horarios y opiniones iniciales son datos de ejemplo.
 - El registro público crea cuentas de paciente; las contraseñas se almacenan con PBKDF2.
+- Los avisos de recordatorio se generan dentro de las 24 horas previas a un turno confirmado mientras el servidor está activo.
 - La API local escucha solo en `127.0.0.1`. No la expongas a internet ni uses datos médicos reales.
 - Los documentos están protegidos en el prototipo, pero no se manejan archivos clínicos reales.
-- Antes de un despliegue real se necesitan HTTPS, secretos persistentes, controles contra abuso, copias de seguridad y revisión de seguridad y privacidad.
+- Para producción definí `MEDILINK_SESSION_SECRET` con un valor aleatorio de al menos 32 bytes y serví el sitio bajo HTTPS; el servidor marca la cookie como `Secure` en producción.
+- Antes de un despliegue real se necesitan copias de seguridad y revisión de seguridad y privacidad.
