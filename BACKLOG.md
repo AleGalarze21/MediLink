@@ -116,10 +116,10 @@ Estas historias forman el primer flujo funcional de MediLink:
 
 ### Criterios de aceptación
 
-- [ ] Mostrar documentos vinculados a la atención del paciente.
-- [ ] Permitir la consulta solamente a usuarios autorizados.
-- [ ] Mostrar fecha y profesional asociado.
-- [ ] Informar cuando no exista documentación.
+- [x] Mostrar documentos vinculados a la atención del paciente.
+- [x] Permitir la consulta solamente a usuarios autorizados.
+- [x] Mostrar fecha y profesional asociado.
+- [x] Informar cuando no exista documentación.
 
 ## HU-06 - Valorar y reseñar
 
@@ -132,11 +132,11 @@ Estas historias forman el primer flujo funcional de MediLink:
 
 ### Criterios de aceptación
 
-- [ ] Habilitar la reseña solamente después de marcar el turno como atendido.
-- [ ] Registrar puntaje y comentario.
-- [ ] Identificar la opinión como consulta verificada.
-- [ ] Evitar más de una reseña para el mismo turno.
-- [ ] Validar y escapar el contenido ingresado por el usuario.
+- [x] Habilitar la reseña solamente después de marcar el turno como atendido.
+- [x] Registrar puntaje y comentario.
+- [x] Identificar la opinión como consulta verificada.
+- [x] Evitar más de una reseña para el mismo turno.
+- [x] Validar y escapar el contenido ingresado por el usuario.
 
 ## HU-07 - Recibir notificaciones
 
@@ -149,10 +149,10 @@ Estas historias forman el primer flujo funcional de MediLink:
 
 ### Criterios de aceptación
 
-- [ ] Notificar la creación y el cambio de estado de un turno.
-- [ ] Enviar recordatorios de consultas próximas.
-- [ ] Mostrar el historial de avisos.
-- [ ] No duplicar notificaciones para el mismo evento.
+- [x] Notificar la creación y el cambio de estado de un turno.
+- [x] Enviar recordatorios de consultas próximas.
+- [x] Mostrar el historial de avisos.
+- [x] No duplicar notificaciones para el mismo evento.
 
 ## HU-08 - Administrar el sistema
 
@@ -165,10 +165,10 @@ Estas historias forman el primer flujo funcional de MediLink:
 
 ### Criterios de aceptación
 
-- [ ] Consultar registros según los permisos del administrador.
-- [ ] Verificar y actualizar usuarios y profesionales.
-- [ ] Moderar reseñas y revisar estados de turnos.
-- [ ] Registrar los cambios administrativos.
+- [x] Consultar registros según los permisos del administrador.
+- [x] Activar, desactivar y asignar roles de usuarios; verificar profesionales.
+- [x] Moderar reseñas y revisar estados de turnos.
+- [x] Registrar los cambios administrativos.
 
 ## HU-09 - Consultar estadísticas
 
@@ -229,10 +229,10 @@ Estas historias forman el primer flujo funcional de MediLink:
 
 ### Criterios de aceptación
 
-- [ ] Restringir cada función según el rol del usuario.
-- [ ] Permitir documentos solamente a pacientes y roles autorizados.
-- [ ] Bloquear accesos sin autenticación válida.
-- [ ] Registrar intentos y cambios relevantes de permisos.
+- [x] Restringir cada función según el rol del usuario.
+- [x] Permitir documentos solamente a pacientes y roles autorizados.
+- [x] Bloquear accesos sin autenticación válida.
+- [x] Registrar intentos y cambios relevantes de permisos.
 
 ---
 
